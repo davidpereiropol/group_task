@@ -159,3 +159,5 @@ In addition to what you see fit to execute, the following items are mandatory:
 Remember that the real goal is to demonstrate a mastery of the tools seen throughout the course. And that happens not only by the quantity of them used but also by the quality when executing them.
 
 **Some dataviz will be extremely positive valued**.
+
+Prueba
