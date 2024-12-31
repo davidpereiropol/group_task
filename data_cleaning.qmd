@@ -1,0 +1,85 @@
+---
+title: "data_cleaning"
+format: 
+  html:
+    embed-resources: true
+---
+
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(readr)
+library(glue)
+```
+
+
+```{r}
+election_data <- read_csv(file = "./data/datos_elecciones_brutos.csv")
+cod_mun <- read_csv(file = "./data/cod_mun.csv")
+surveys <- read_csv(file = "./data/historical_surveys.csv")
+abbrev <- read_csv(file = "./data/siglas.csv")
+```
+```{r}
+election_data_tidy <- election_data |> 
+  pivot_longer(cols = -(1:15), names_to = "party", values_to = "votes")
+
+important_parties <- c(
+  "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
+  "PARTIDO POPULAR",
+  "CIUDADANOS",
+  "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO",
+  "BLOQUE NACIONALISTA GALEGO",
+  "CONVERGÈNCIA I UNIÓ",
+  "UNIDAS PODEMOS - IU",
+  "ESQUERRA REPUBLICANA DE CATALUNYA",
+  "EH - BILDU",
+  "MÁS PAÍS",
+  "VOX"
+)
+
+election_data_tidy <- election_data_tidy |> 
+  mutate(party_recoded = case_when(
+    str_detect(party, "PARTIDO SOCIALISTA OBRERO ESPAÑOL") ~ "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
+    str_detect(party, "PARTIDO DE LA CIUDADANIA|PARTIDO DE LA CIUDADANÍA") ~ "CIUDADANOS-PARTIDO DE LA CIUDADANIA",
+    str_detect(party, "EH - BILDU|ARALAR|ALTERNATIBA|EUSKO ALKARTASUNA") ~ "EUSKAL HERRIA BILDU",
+    str_detect(party, "UNIDAS PODEMOS|EN MAREA|PODEM|EZKER BATUA|IZQUIERDA UNIDA") ~ "PODEMOS",
+    str_detect(party, "CONVERGÈNCIA I UNIÓ|CONVERGÈNCIA i UNIÓ|CONVERGENCIA I UNIO") ~ "CONVERGENCIA I UNIO",
+    str_detect(party, "MÁS PAÍS") ~ "MÁS PAÍS",
+    party %in% important_parties ~ party,
+    TRUE ~ "OTHER"
+  ))
+
+election_data_tidy <- election_data_tidy |> 
+  mutate("date" = glue("{anno}-{mes}-01") |> as_date(), .after = mes) |> 
+  unite(col = "cod_mun", codigo_ccaa, codigo_provincia, codigo_municipio, sep = "-")
+
+surveys_tidy <- surveys |> 
+  pivot_longer(cols = -(1:10), names_to = "party", values_to = "estimation")
+
+abbrev_unique <- abbrev |> 
+  distinct(denominacion, .keep_all = TRUE)
+
+election_data_tidy <- election_data_tidy |> 
+  left_join(abbrev_unique, by = c("party_recoded" = "denominacion"))
+
+election_data_tidy <- election_data_tidy |> 
+  left_join(cod_mun, by = "cod_mun")
+
+election_data_tidy <- election_data_tidy |> 
+  select(-c(vuelta, tipo_eleccion, codigo_distrito_electoral))
+
+surveys_tidy <- surveys_tidy |> 
+  select(-c(type_survey)) |> 
+  filter(year(date_elec) >= 2008)
+
+surveys_tidy |> 
+  filter(year(date_elec) >= 2008)
+
+# The variables that have been deleted did not have any variability
+
+election_data_tidy |> 
+  arrange(desc(date))
+
+save(election_data_tidy, file = "data/election.rda")
+```
+
