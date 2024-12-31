@@ -72,14 +72,11 @@ surveys_tidy <- surveys_tidy |>
   select(-c(type_survey)) |> 
   filter(year(date_elec) >= 2008)
 
-surveys_tidy |> 
-  filter(year(date_elec) >= 2008)
-
 # The variables that have been deleted did not have any variability
 
-election_data_tidy |> 
-  arrange(desc(date))
+save(election_data_tidy, file = "data/elections_tidy.rda")
+save(surveys_tidy, file = "data/surveys_tidy.rda")
 
-save(election_data_tidy, file = "data/election.rda")
+Hola
 ```
 
