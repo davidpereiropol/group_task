@@ -1,6 +1,5 @@
 ---
-title: "testmafalda2"
-author: "mafalda gonzalez"
+title: "gur_file"
 format: html
 editor: visual
 ---
