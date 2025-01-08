@@ -280,4 +280,62 @@ ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
 ```
 
 
+```{r}
+# Primero calculamos el porcentaje de municipios ganados
+second_combined2 <- second_combined %>%
+  group_by(first, date) %>%
+  mutate(
+    total_municipalities_per_election = sum(num_municipalities),
+    percent_municipalities = (num_municipalities / total_municipalities_per_election) * 100
+  ) %>%
+  ungroup()
+
+second_combined2$date <- factor(second_combined2$date, levels = unique(second_combined2$date))
+
+# Crear el gráfico de barras agrupadas con porcentaje
+ggplot(second_combined2, aes(x = date, y = percent_municipalities, fill = second)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  scale_fill_manual(
+    values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "NA" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "EAJ-PNV" = "darkgreen",
+      "BNG" = "#5B92E5",
+      "C's" = "#EFB62A",
+      "OTHER" = "lightgray"
+    )
+  ) +
+  labs(
+   title = "Second places when PSOE or PP were first",
+    x = "Election Date",
+    y = "% of Municipalities",
+    fill = "Second Party"
+  ) +
+  facet_wrap(
+    ~ first,
+    scales = "free_y",
+    labeller = labeller(first = c(PP = "PP Primero", PSOE = "PSOE Primero"))
+  ) +
+  geom_text(
+    aes(label = paste0(round(percent_municipalities, 1), "%")), 
+    position = position_stack(vjust = 0.5), 
+    size = 3.5, color = "black"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial"),
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 10),
+    legend.position = "top",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    strip.text = element_text(size = 14, face = "bold"),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+```
 
