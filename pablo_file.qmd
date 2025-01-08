@@ -4,7 +4,95 @@ author: "Pablo Aísa"
 format: html
 editor: visual
 ---
+Data
+```{r}
 
-## First changes
+library(tidyverse)
 
-Hola
+load("data/elections_tidy.rda")
+load("data/surveys_tidy.rda")
+```
+
+First question
+
+Which party was the winner in the municipalities with more than 100,000 habitants (census) in each of the elections?
+
+```{r}
+
+# Filter
+elections <- election_data_tidy
+
+head(elections)
+str(elections)
+
+large_municipalities <- elections |>
+  filter(censo > 100000)
+
+# Winning parties
+winners <- large_municipalities |> 
+  group_by(date, municipio) |> 
+  slice_max(votes, n = 1, with_ties = FALSE) |> 
+  ungroup()
+
+# Number of municipalities won
+elections_winners <- winners |> 
+  group_by(date, party_recoded)|> 
+  summarize(num_municipalities = n(), .groups = "drop") |> 
+  arrange(date, desc(num_municipalities))
+
+## No sé si quiere el ganador en cada elección, es decir, el que ganó en más municipios grandes o lo que he hecho que son todos los partidos que hayan ganado en alguno, aunque sólo sea uno.
+```
+
+Second question
+
+Which party was the second when the first was the PSOE? And when the first was the PP?
+
+```{r}
+
+ranked_votes <- elections |> 
+  group_by(date, municipio) |> 
+  arrange(desc(votes)) |> 
+  mutate(rank = row_number()) |> 
+  ungroup()
+
+# PSOE is first
+second_psoe <- ranked_votes |> 
+  group_by(date, municipio) |> 
+  filter(rank == 1 & siglas == "PSOE") |> 
+  left_join(
+    ranked_votes |> 
+      filter(rank == 2) |> 
+      select(date, municipio, second = siglas, votes = votes),
+    by = c("date", "municipio")
+  ) |> 
+  ungroup()
+
+second_psoe_sum <- second_psoe |> 
+  group_by(date, second) |> 
+  summarize(
+    num_municipalities = n(),
+    .groups = "drop"
+  ) |> 
+  arrange(date, desc(num_municipalities))
+
+# PP is first
+second_pp <- ranked_votes |> 
+  group_by(date, municipio) |> 
+  filter(rank == 1 & siglas == "PP") |> 
+  left_join(
+    ranked_votes |> 
+      filter(rank == 2) |> 
+      select(date, municipio, second = siglas, votes = votes),
+    by = c("date", "municipio")
+  ) |> 
+  ungroup()
+
+second_pp_sum <- second_pp |> 
+  group_by(date, second) |> 
+  summarize(
+    num_municipalities = n(),
+    .groups = "drop"
+  ) |> 
+  arrange(date, desc(num_municipalities))
+
+```
