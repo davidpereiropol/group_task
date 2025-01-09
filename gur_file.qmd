@@ -2,7 +2,6 @@
 title: "gur_file"
 format: html
 editor: visual
-bibliography: references.bib
 ---
 
 ### Question 3
