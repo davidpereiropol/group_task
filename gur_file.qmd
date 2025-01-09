@@ -2,9 +2,12 @@
 title: "gur_file"
 format: html
 editor: visual
+bibliography: references.bib
 ---
 
 ### Question 3
+
+Who benefits from low turnout?
 
 ```{r}
 
@@ -17,12 +20,14 @@ library(broom)
 x <- election_data_tidy
 # election_data_tidy <- x
 
+
 election_data_tidy <- election_data_tidy |> 
-  group_by(cod_mun, anno, party_recoded) |> 
+  group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
   mutate(
     total_votes = votos_blancos + votos_nulos + votos_candidaturas,
     turnout = total_votes / censo,
-    vote_share_by_party = votes / total_votes
+    votes_recoded = sum(votes, na.rm = TRUE),
+    vote_share_by_party = votes_recoded / total_votes
   ) |> 
   ungroup()
 
@@ -141,4 +146,73 @@ election_data_tidy <-
     participacion_2 >= 50 & participacion_2 < 70 ~ "Middle Turnout",
     participacion_2 >= 70 ~ "High Turnout"
   ))
+```
+
+### Question 4
+
+How to analyze the relationship between census and vote? Is it true that certain parties win in rural areas?
+
+The steps for addressing this question:
+
+-   We might use 'censo' (census, aka population) as a proxy for describing rural and urban
+
+<!-- -->
+
+-   Defining area types: what 'urban' and 'rural' refer to in terms of numbers (censo)
+
+    -   An idea could be to use 'INE' for coming up with a distinction.
+
+[@gómezvalenzuela2023]
+
+-   Lastly, we will assess the relationship between area type and vote share.
+
+```{r}
+
+
+x <- election_data_tidy
+# election_data_tidy <- x
+
+election_data_tidy <- election_data_tidy |> 
+  group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
+  mutate(
+    total_votes = votos_blancos + votos_nulos + votos_candidaturas,
+    turnout = total_votes / censo,
+    votes_recoded = sum(votes, na.rm = TRUE),
+    vote_share_by_party = votes_recoded / total_votes
+  ) |> 
+  ungroup()
+
+
+# First part 
+
+# Onto the model
+
+model_census_vote <- lm(vote_share_by_party ~ censo * party_recoded, data = election_data_tidy)
+
+# Summarize the model
+summary(model_census_vote)
+
+
+# Let's visualise the model for the first part
+
+ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, colour = party_recoded)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Party-Specific Trends: Vote Share vs Census",
+    x = "Census",
+    y = "Vote Share",
+    colour = "Party"
+  ) +
+  theme_minimal()
+
+# For the second part - rural vs urban
+
+election_data_tidy <- election_data_tidy |> 
+  mutate(
+    area_type = ifelse(censo < 10000, "Rural", "Urban")
+  )
+
+model_area_type <- lm(vote_share_by_party ~ censo * party_recoded, data = election_data_tidy)
+
+
 ```
