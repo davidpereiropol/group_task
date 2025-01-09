@@ -8,3 +8,159 @@ editor: visual
 ---
 
 ## Vamos a ver que esto funcione chavaleesssssss
+
+# Q3: Who benefits from low turnout?
+
+For this question we want to compare the number of votes that parties get depending on the turnout, to find out who get proportionally more votes when there is lower turnout that when there is higher turnout.
+
+-   Question: who benefits from low turnout? => proportion of vote share by party depending on the turnout by each municipality 
+    -   independent of the population size!! 
+
+
+## Statistical analysis: without categorisation
+Firstly, we can use statistics to find out the differences. 
+
+=> regression model with vote share by party is the dependent variable and turnout is the independent / explanatory variable => quantify relationship and test statistical significance 
+
+
+Process:
+
+### New variables: first group by municipality (code_mun), anno, party_recorded => variables by which we want to differentiate 
+
+    -   total_votes = null + candidature + white ballots = total votes in each municipality 
+    -   turnout =  total_votes / census = the proportion of actual votes / posible votes 
+    -   vote_share_by_party = votes / total_votes = the share of the total vote by each party 
+
+```{r}
+election_data_tidy <- election_data_tidy |> 
+  group_by(cod_mun, anno, party_recoded) |> 
+  mutate(
+    total_votes = votos_blancos + votos_nulos + votos_candidaturas,
+    turnout = total_votes / censo,
+    vote_share_by_party = votes / total_votes
+  ) |> 
+  ungroup()
+
+```
+
+    
+### Model relationship for all parties and compare the slopes: 
+
+#### Interaction (vote_share ~ turnout * party_recoded) = how relationship between turnout and vote share differs by party
+
+Fixed effects => explicitly compare how the relationship between turnout and vote share varies across parties 
+
+-   estimate a separate coefficient for each party => directly observe how each party’s vote share changes with turnout => goal: pinpoint which parties gain or lose vote share in low-turnout scenarios
+
+```{r}
+# regression model with interaction between turnout and party
+model_all <- lm(vote_share_by_party ~ turnout * party_recoded, data = election_data_tidy)
+
+```
+
+#### Visual representation 
+
+```{r}
+ggplot(election_data_tidy, aes(x = turnout, y = vote_share_by_party, colour = party_recoded)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Party-Specific Trends: Vote Share vs Turnout",
+    x = "Turnout",
+    y = "Vote Share",
+    colour = "Party"
+  ) +
+  theme_minimal()
+```
+    -   positive slope for turnout = party gains vote share as turnout increases
+    -   negative slope = party benefits more from low turnout
+
+
+#### Interpretation
+
+The plot displays the relationship between voter turnout and vote share for various political parties.  
+
+-   Overall Trend: a strong positive correlation exists between voter turnout and the vote share of PP => increase of turnout = significant increase of vote share => interpretation: PP support base is highly engaged and likely to vote
+
+-   Inverse Relationships: some parties show an inverse or weaker relationship between turnout and vote share.
+
+-   Party-Specific Performance: performance of some parties varies considerably.
+
+    -   flat relationship: vote share isn't strongly affected by turnout changes
+    -   complex patterns: vote share possibly influenced by factors not captured in the graph (e.g., specific campaign strategies, regional variations)
+
+
+-   Limitations: no information on the total number of votes for each party => shows only the relative proportion (vote share) within the context of the turnout
+
+    -   a party with a high vote share at low turnout might still have fewer total votes than another party with a lower share at higher turnout
+
+
+
+### Significance 
+
+```{r}
+summary(model_all)
+
+library(broom)
+# extract coefficients
+tidy(model_all)
+
+```
+
+-   turnout: Main effect of turnout (baseline effect for the reference party)
+-   party_recoded: Fixed effect for each party (baseline vote share differences between parties).
+-   turnout:party_recoded: Interaction terms, showing how turnout affects each party differently.
+
+Interpretation: 
+-   coefficients for turnout:party_recoded => how each party's vote share changes with turnout compared to the baseline party 
+
+    -   If a party's coefficient for turnout:party_recoded is positive, it benefits more from higher turnout.
+    -   If the coefficient is negative, it benefits more from lower turnout
+
+
+## Statistical analysis: with categorisation
+
+GÜR wants to keep working on this 
+
+```{r}
+data <- data |> 
+  mutate(
+    turnout_category = cut(
+      turnout,
+      breaks = c(0, 0.4, 0.6, 0.8, 1), 
+      labels = c("Low", "Medium", "High", "Very High"),
+      include.lowest = TRUE
+    )
+  )
+
+summary_data <- data |> 
+  group_by(turnout_category, party_recoded) |> 
+  summarise(
+    avg_vote_share = mean(vote_share_by_party, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Visualise
+ggplot(summary_data, aes(x = turnout_category, y = avg_vote_share, fill = party_recoded)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Vote Share by Turnout Level and Party",
+    x = "Turnout Category",
+    y = "Average Vote Share",
+    fill = "Party"
+  ) +
+  theme_minimal()
+```
+
+### Interpretation
+
+-   **Partido Nacionalista Vasco**: hypothesis: presents itself only in pais vasco, where its always going to have high voter share. if it was present in other communities its average voter share would not be so high
+
+
+# NOTES 
+
+Should we do a comparison between the years? Just for fun? or to kill ourselves? 
+
+Should we divide between nationaly represented parties? To avoid problem of Partido Nacionalista Vasco? 
+
+
+# Q4: How to analyze the relationship between census and vote? Is it true that certain parties win in rural areas?
