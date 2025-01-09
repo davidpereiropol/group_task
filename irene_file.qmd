@@ -316,7 +316,7 @@ ggplot(second_combined2, aes(x = date, y = percent_municipalities, fill = second
   facet_wrap(
     ~ first,
     scales = "free_y",
-    labeller = labeller(first = c(PP = "PP Primero", PSOE = "PSOE Primero"))
+    labeller = labeller(first = c(PP = "PP First", PSOE = "PSOE First"))
   ) +
   geom_text(
     aes(label = paste0(round(percent_municipalities, 1), "%")), 
