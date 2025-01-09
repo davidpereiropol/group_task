@@ -54,7 +54,7 @@ election_data_tidy <- election_data_tidy |>
   unite(col = "cod_mun", codigo_ccaa, codigo_provincia, codigo_municipio, sep = "-")
 
 surveys_tidy <- surveys |> 
-  pivot_longer(cols = -(1:10), names_to = "party", values_to = "estimation")
+  pivot_longer(cols = -(1:10), names_to = "party", values_to = "estimation") 
 
 abbrev_unique <- abbrev |> 
   distinct(denominacion, .keep_all = TRUE)
@@ -70,13 +70,17 @@ election_data_tidy <- election_data_tidy |>
 
 surveys_tidy <- surveys_tidy |> 
   select(-c(type_survey)) |> 
-  filter(year(date_elec) >= 2008)
+  filter(year(date_elec) >= 2008) |> 
+  filter(exit_poll == FALSE) |> 
+  filter(size >= 750) |> 
+  drop_na(size) |> 
+  filter(field_date_to - field_date_from >= 1)
+  
 
 # The variables that have been deleted did not have any variability
 
 save(election_data_tidy, file = "data/elections_tidy.rda")
 save(surveys_tidy, file = "data/surveys_tidy.rda")
 
-Hola3
 ```
 
