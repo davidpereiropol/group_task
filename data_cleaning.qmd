@@ -39,12 +39,13 @@ important_parties <- c(
 
 election_data_tidy <- election_data_tidy |> 
   mutate(party_recoded = case_when(
-    str_detect(party, "PARTIDO SOCIALISTA OBRERO ESPAÑOL") ~ "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
+    str_detect(party, "PARTIDO SOCIALISTA OBRERO ESPAÑOL|PARTIT DELS SOCIALISTES DE CATALUNYA") ~ "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
     str_detect(party, "PARTIDO DE LA CIUDADANIA|PARTIDO DE LA CIUDADANÍA") ~ "CIUDADANOS-PARTIDO DE LA CIUDADANIA",
     str_detect(party, "EH - BILDU|ARALAR|ALTERNATIBA|EUSKO ALKARTASUNA") ~ "EUSKAL HERRIA BILDU",
     str_detect(party, "UNIDAS PODEMOS|EN MAREA|PODEM|EZKER BATUA|IZQUIERDA UNIDA") ~ "PODEMOS",
     str_detect(party, "CONVERGÈNCIA I UNIÓ|CONVERGÈNCIA i UNIÓ|CONVERGENCIA I UNIO") ~ "CONVERGENCIA I UNIO",
     str_detect(party, "MÁS PAÍS") ~ "MÁS PAÍS",
+    str_detect(party, "PARTIDO POPULAR") ~ "PARTIDO POPULAR",
     party %in% important_parties ~ party,
     TRUE ~ "OTHER"
   ))
