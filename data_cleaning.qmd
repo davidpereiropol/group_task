@@ -68,13 +68,15 @@ election_data_tidy <- election_data_tidy |>
 election_data_tidy <- election_data_tidy |> 
   select(-c(vuelta, tipo_eleccion, codigo_distrito_electoral))
 
-surveys_tidy <- surveys_tidy |> 
-  select(-c(type_survey)) |> 
-  filter(year(date_elec) >= 2008) |> 
-  filter(exit_poll == FALSE) |> 
-  filter(size >= 750) |> 
-  drop_na(size) |> 
-  filter(field_date_to - field_date_from >= 1)
+surveys_tidy <- surveys_tidy |>
+  filter(
+    year(date_elec) >= 2008,
+    exit_poll == FALSE,
+    size >= 750,
+    field_date_to - field_date_from >= 1
+  ) |>
+  select(-type_survey) |>
+  drop_na(size)
   
 
 # The variables that have been deleted did not have any variability
