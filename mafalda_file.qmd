@@ -5,10 +5,11 @@ format:
   html:
     embed-resources: true
 editor: visual
+bibliography: references.bib
 ---
 
-
 ```{r}
+#| eval: false
 load("data/elections_tidy.rda")
 load("data/surveys_tidy.rda")
 
@@ -32,6 +33,10 @@ Firstly, we can use statistics to find out the differences.
 
 Process:
 
+```{r}
+
+```
+
 ### New variables: first group by municipality (code_mun), anno, party_recorded =\> variables by which we want to differentiate
 
 ```         
@@ -41,6 +46,7 @@ Process:
 ```
 
 ```{r}
+#| eval: false
 election_data_tidy <- election_data_tidy |> 
   group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
   mutate(
@@ -62,6 +68,7 @@ Fixed effects =\> explicitly compare how the relationship between turnout and vo
 -   estimate a separate coefficient for each party =\> directly observe how each party’s vote share changes with turnout =\> goal: pinpoint which parties gain or lose vote share in low-turnout scenarios
 
 ```{r}
+#| eval: false
 # regression model with interaction between turnout and party
 model_all <- lm(vote_share_by_party ~ turnout * party_recoded, data = election_data_tidy)
 
@@ -70,6 +77,7 @@ model_all <- lm(vote_share_by_party ~ turnout * party_recoded, data = election_d
 #### Visual representation
 
 ```{r}
+#| eval: false
 ggplot(election_data_tidy, aes(x = turnout, y = vote_share_by_party, colour = party_recoded)) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(
@@ -106,6 +114,7 @@ The plot displays the relationship between voter turnout and vote share for vari
 ### Significance
 
 ```{r}
+#| eval: false
 summary(model_all)
 
 library(broom)
@@ -130,7 +139,8 @@ Interpretation: - coefficients for turnout:party_recoded =\> how each party's vo
 GÜR wants to keep working on this
 
 ```{r}
-data <- data |> 
+#| eval: false
+data <- election_data_tidy |> 
   mutate(
     turnout_category = cut(
       turnout,
@@ -140,7 +150,7 @@ data <- data |>
     )
   )
 
-summary_data <- data |> 
+summary_data <- election_data_tidy |> 
   group_by(turnout_category, party_recoded) |> 
   summarise(
     avg_vote_share = mean(vote_share_by_party, na.rm = TRUE),
@@ -171,10 +181,16 @@ Should we divide between nationaly represented parties? To avoid problem of Part
 
 # Q4: How to analyze the relationship between census and vote? Is it true that certain parties win in rural areas?
 
+Difference rural / urban
+
+-   [@gómezvalenzuela2023] p. 432
+
+-   \<10.000 rural, \>10.000 urban
+
 Biggest census implies more votes for certain parties?
 
 Classify municipalities in rural and urban areas.
 
-Know which is the maximun and minum value of the census 
+Know which is the maximun and minum value of the census
 
 Check winners by area.
