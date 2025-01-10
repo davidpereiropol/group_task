@@ -22,10 +22,17 @@ Which party was the winner in the municipalities with more than 100,000 habitant
 # Filter
 elections <- election_data_tidy
 
+elections2 <- election_data_tidy |> 
+  group_by(date, municipio, party_recoded) |> 
+  mutate(votes_recoded = sum(votes, na.rm = TRUE))
+
 head(elections)
 str(elections)
 
 large_municipalities <- elections |>
+  filter(censo > 100000)
+
+large_municipalities2 <- elections2 |>
   filter(censo > 100000)
 
 # Winning parties
@@ -34,11 +41,25 @@ winners <- large_municipalities |>
   slice_max(votes, n = 1, with_ties = FALSE) |> 
   ungroup()
 
+winners2 <- large_municipalities2 |>
+  group_by(date, municipio) |> 
+  slice_max(votes_recoded, n = 1, with_ties = FALSE) |> 
+  ungroup()
+
+
 # Number of municipalities won
 elections_winners <- winners |> 
   group_by(date, party_recoded)|> 
   summarize(num_municipalities = n(), .groups = "drop") |> 
   arrange(date, desc(num_municipalities))
+
+elections_winners2 <- winners2 |> 
+  group_by(date, party_recoded)|> 
+  summarize(num_municipalities = n(), .groups = "drop") |> 
+  arrange(date, desc(num_municipalities))
+
+prueba <- elections_winners |> 
+  left_join(elections_winners2, by = c("date", "party_recoded"))
 
 ## No sé si quiere el ganador en cada elección, es decir, el que ganó en más municipios grandes o lo que he hecho que son todos los partidos que hayan ganado en alguno, aunque sólo sea uno.
 ```
@@ -58,11 +79,11 @@ ranked_votes <- elections |>
 # PSOE is first
 second_psoe <- ranked_votes |> 
   group_by(date, municipio) |> 
-  filter(rank == 1 & siglas == "PSOE") |> 
+  filter(rank == 1 & party_recoded == "PARTIDO SOCIALISTA OBRERO ESPAÑOL") |> 
   left_join(
     ranked_votes |> 
       filter(rank == 2) |> 
-      select(date, municipio, second = siglas, votes = votes),
+      select(date, municipio, second = party_recoded, votes = votes),
     by = c("date", "municipio")
   ) |> 
   ungroup()
@@ -78,11 +99,11 @@ second_psoe_sum <- second_psoe |>
 # PP is first
 second_pp <- ranked_votes |> 
   group_by(date, municipio) |> 
-  filter(rank == 1 & siglas == "PP") |> 
+  filter(rank == 1 & party_recoded == "PARTIDO POPULAR") |> 
   left_join(
     ranked_votes |> 
       filter(rank == 2) |> 
-      select(date, municipio, second = siglas, votes = votes),
+      select(date, municipio, second = party_recoded, votes = votes),
     by = c("date", "municipio")
   ) |> 
   ungroup()
