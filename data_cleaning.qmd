@@ -67,7 +67,11 @@ election_data_tidy <- election_data_tidy |>
   left_join(cod_mun, by = "cod_mun")
 
 election_data_tidy <- election_data_tidy |> 
-  select(-c(vuelta, tipo_eleccion, codigo_distrito_electoral))
+  select(-c(vuelta, tipo_eleccion, codigo_distrito_electoral)) |> 
+  mutate(siglas = if_else(is.na(siglas), "OTHER", siglas))
+
+election_data_tidy_woNA <- election_data_tidy |> 
+  drop_na(votes)
 
 surveys_tidy <- surveys_tidy |>
   filter(
@@ -84,6 +88,7 @@ surveys_tidy <- surveys_tidy |>
 
 save(election_data_tidy, file = "data/elections_tidy.rda")
 save(surveys_tidy, file = "data/surveys_tidy.rda")
+save(election_data_tidy_woNA, file = "data/elections_tidy_wo_na.rda")
 
 ```
 
