@@ -85,7 +85,9 @@ surveys_tidy <- surveys_tidy |>
   
 
 # The variables that have been deleted did not have any variability
+```
 
+```{r}
 save(election_data_tidy, file = "data/elections_tidy.rda")
 save(surveys_tidy, file = "data/surveys_tidy.rda")
 save(election_data_tidy_woNA, file = "data/elections_tidy_wo_na.rda")
