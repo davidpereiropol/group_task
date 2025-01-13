@@ -42,7 +42,10 @@ winners_by_party <- winners |>
 ```
 
 
-```{r}
+```{r, fig.height = 8, fig.width = 10}
+
+library(showtext)
+font_add_google("Roboto", "roboto")
 # Modificar el dataframe para que "date" sea un factor con solo las fechas presentes en los datos
 winners$date <- factor(winners$date, levels = unique(winners$date))
 
@@ -78,9 +81,9 @@ ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
   ) +
   theme_minimal() +
   theme(
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
-    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
-    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 11, family = "Roboto", color = "black"),
     legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
     legend.text = element_text(size = 10, family = "Roboto"),
     legend.box.background = element_rect(color = "black", size = 0.5),
@@ -91,7 +94,7 @@ ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
 
 ```
 
-```{r}
+```{r, fig.height = 6, fig.width = 10}
 
 general_election_winners <- data.frame(
   date = as.Date(c("2008-03-01", "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01")),
@@ -100,8 +103,8 @@ general_election_winners <- data.frame(
     "PARTIDO POPULAR",                    # 2011
     "PARTIDO POPULAR",                    # 2015
     "PARTIDO POPULAR",                    # 2016
-    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
-    "PARTIDO SOCIALISTA OBRERO ESPAÑOL")
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  #Primera de 2019
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL")  #Segunda de 2019
 )
 
 # Crear la columna end_date (inicio de la siguiente legislatura)
@@ -111,14 +114,11 @@ general_election_winners$end_date <- as.Date(c(
 
 # Gráfico con fondo de color para los partidos ganadores en las elecciones generales
 ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_recoded)) +
-  # Fondo coloreado para el partido ganador de elecciones generales
   geom_rect(data = general_election_winners,
             aes(xmin = date, xmax = end_date, ymin = -Inf, ymax = Inf, fill = party_recoded),
             alpha = 0.1, inherit.aes = FALSE) +
-  # Líneas de evolución de los municipios ganados
   geom_line(size = 1) +
-  geom_point(size = 3) +  # Puntos con borde negro
-  # Colores para los partidos
+  geom_point(size = 3) +  
   scale_color_manual(
     values = c(
       "PARTIDO POPULAR" = "#1db4e8",
@@ -137,9 +137,7 @@ ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_rec
       "VOX" = "Vox",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
       "CONVERGENCIA I UNIO" = "CiU"
-    )
-  ) +
-  # Colores del fondo para el partido ganador
+    ),
   scale_fill_manual(
     values = c(
       "PARTIDO POPULAR" = "#1db4e8",
@@ -149,9 +147,8 @@ ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_rec
       "PARTIDO POPULAR" = "PP",
       "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE")
   ) +
-  # Añadir líneas verticales en las fechas de elección
   geom_vline(data = general_election_winners, aes(xintercept = as.numeric(date)),
-             color = "gray50", linetype = "dashed", size = 0.6) +
+             color = "gray50", linetype = "dashed", size = 0.4) +
   labs(
     title = "Evolution of winning party in municipalities with more than 100,000 habitants",
     x = "Date of Election",
@@ -161,9 +158,9 @@ ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_rec
   ) +
   theme_minimal() +
   theme(
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
-    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
-    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    plot.title = element_text(size = 16, face = "bold", family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 11, family = "Roboto", color = "black"),
     legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
     legend.text = element_text(size = 10, family = "Roboto"),
     legend.box.background = element_rect(color = "black", size = 0.5),
@@ -234,7 +231,7 @@ head(second_psoe_sum)
 ```
 
 
-```{r}
+```{r, fig.height = 6, fig.width = 10}
 second_combined <- bind_rows(
   second_pp_sum %>% mutate(first = "PP"),
   second_psoe_sum %>% mutate(first = "PSOE")
@@ -244,7 +241,7 @@ second_combined$date <- factor(second_combined$date, levels = unique(second_comb
 
 # Gráfico de barras apiladas con facets
 ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
-  geom_bar(stat = "identity", position = "stack", color = "black") +
+  geom_bar(stat = "identity", position = "fill", color = "black") +
   scale_fill_manual(
     values = c(
       "PARTIDO POPULAR" = "#1db4e8",
@@ -279,9 +276,10 @@ ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
   facet_wrap(~ first, scales = "free_y", labeller = labeller(first = c(PP = "PP First", PSOE = "PSOE First"))) +
   theme_minimal() +
   theme(
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
-    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
-    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    strip.text = element_text(size = 14, face = "bold", family = "Roboto"),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black", angle = 20),
+    axis.text.y = element_text(size = 11, family = "Roboto", color = "black"),
     legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
     legend.text = element_text(size = 10, family = "Roboto"),
     legend.box.background = element_rect(color = "black", size = 0.5),
@@ -291,30 +289,13 @@ ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
 
 ```
 
-```{r}
+```{r, fig.height = 7, fig.width = 12}
 library(ggalluvial)
-# Crear el gráfico Sankey
-ggplot(second_combined, aes(
-  axis1 = first, axis2 = second,
-  y = num_municipalities, fill = second
-)) +
-  geom_alluvium(aes(fill = second), width = 1/6) +
-  geom_stratum(width = 1/6, fill = "lightgray", color = "black") +
-  geom_label(stat = "stratum", aes(label = after_stat(stratum)), size = 4) +
-  scale_fill_manual(
-    values = c(
-      "PARTIDO POPULAR" = "#1db4e8",
-      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
-      "OTHER" = "gray60",
-      "PODEMOS" = "#a444b4",
-      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
-      "BLOQUE NACIONALISTA GALEGO" = "lightblue",
-      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "orange",
-      "VOX" = "#83b431",
-      "CONVERGENCIA I UNIO" = "#1b348a",
-      "ESQUERRA REPUBLICANA DE CATALUNYA"= "yellow"
-    ),
-    labels = c(
+
+# Recodificar los nombres de los partidos
+second_combined <- second_combined %>%
+  mutate(
+    first = recode(first,
       "PARTIDO POPULAR" = "PP",
       "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
       "OTHER" = "Others",
@@ -323,7 +304,42 @@ ggplot(second_combined, aes(
       "BLOQUE NACIONALISTA GALEGO" = "BNG",
       "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
       "CONVERGENCIA I UNIO" = "CiU",
-      "ESQUERRA REPUBLICANA DE CATALUNYA"= "ERC"
+      "ESQUERRA REPUBLICANA DE CATALUNYA" = "ERC"
+    ),
+    second = recode(second,
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "BLOQUE NACIONALISTA GALEGO" = "BNG",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA" = "ERC"
+    )) |> 
+  filter(!(second == "PNV" | second == "BNG" | second == "ERC"))
+  
+
+# Gráfico Alluvial actualizado
+ggplot(second_combined, aes(
+  axis1 = first, axis2 = second,
+  y = num_municipalities, fill = second
+)) +
+  geom_alluvium(aes(fill = second), width = 1/6) +
+  geom_stratum(aes(fill = after_stat(stratum)), width = 1/6, color = "black") +
+ geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3.5, color = "black", fontface = "bold") +
+  scale_fill_manual(
+    values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "Others" = "gray60",
+      "Podemos" = "#a444b4",
+      "PNV" = "darkgreen",
+      "BNG" = "lightblue",
+      "C's" = "orange",
+      "VOX" = "#83b431",
+      "CiU" = "#1b348a",
+      "ERC" = "yellow"
     )
   ) +
   labs(
@@ -334,14 +350,18 @@ ggplot(second_combined, aes(
   ) +
   theme_minimal() +
   theme(
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
-    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
-    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
-    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
-    legend.text = element_text(size = 10, family = "Roboto"),
+    plot.title = element_text(size = 17, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    legend.title = element_text(size = 13, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 11, family = "Roboto"),
     legend.box.background = element_rect(color = "black", size = 0.5),
     plot.margin = margin(15, 15, 15, 15),
-    legend.key.size = unit(1, "lines"))
+    legend.key.size = unit(1, "lines")
+  )
+
 
 
 
