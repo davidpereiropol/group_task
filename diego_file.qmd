@@ -1,0 +1,135 @@
+---
+title: "diego_file"
+format: html
+editor: visual
+---
+
+## 
+
+```         
+-   Which polling houses got it right the most and which ones deviated the most from the results?
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+
+load("data/elections_tidy.rda")
+load("data/surveys_tidy.rda")
+
+head(election_data_tidy)
+# I will aggregate votes and calculate vote shares at the national level.
+
+elections_aggregated <- election_data_tidy |> 
+  group_by(date, siglas) |> 
+  summarize(
+    total_votes = sum(votes, na.rm = TRUE), 
+    total_participation = sum(votos_candidaturas, na.rm = TRUE) 
+  ) |> 
+  mutate(vote_share = total_votes / total_participation * 100) 
+elections_aggregated
+```
+
+```{r}
+#| echo: false
+head(surveys_tidy)
+# I will merge aggregated election results with surveys
+poll_calibration <- surveys_tidy |> 
+  mutate(year_month_elec = floor_date(date_elec, "month")) |> # I will extract year and month (lubridate package)
+  left_join(
+    elections_aggregated |> 
+      mutate(year_month = floor_date(date, "month")),          # I will extract year and month
+    by = c("year_month_elec" = "year_month", "party" = "siglas")
+  )
+poll_calibration
+# I will calculate the error
+
+poll_calibration <- poll_calibration |> 
+  mutate(error = estimation - vote_share)
+poll_calibration
+
+```
+
+```{r}
+#| echo: false
+
+# Error analysis: summary of errors by pollster or any other factor
+
+error_analysis <- poll_calibration |> 
+  group_by(pollster) |> 
+  summarize(
+    mean_error = mean(error, na.rm = TRUE),
+    sd_error = sd(error, na.rm = TRUE),
+    n_polls = n()
+  )
+error_analysis
+
+# Boxplot grouped by pollster (any other suggetions for graphs??)
+ggplot(poll_calibration, aes(x = reorder(pollster, error, FUN = median), y = error)) +
+  geom_boxplot() +
+  labs(
+    title = "Polling Errors by Pollster",
+    x = "Pollster",
+    y = "Polling Error"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+
+  
+
+```
+
+```{r}
+#| echo: false
+
+#     -   Which polling houses got it right the most and which ones deviated the most from the results?
+
+
+# To analyze which polling houses (pollsters) were the most and least accurate -> mean absolute error (how far each point is from the actual result, irrespective of the direction of the error)
+
+# I will calculate the abs errors for each polster
+
+poll_calibration <- poll_calibration |> 
+  mutate(abs_error = abs(error))  
+
+# The most accurate polling houses are at the top of the pollster_accuracy table whilst the least precise ones are at the bottom.
+
+pollster_accuracy <- poll_calibration |> 
+  group_by(pollster) |> 
+  summarize(
+    mean_abs_error = mean(abs_error, na.rm = TRUE),# mean abs error column
+    sd_abs_error = sd(abs_error, na.rm = TRUE)
+  ) |> 
+  arrange(mean_abs_error)
+pollster_accuracy
+
+# I created a bar plot to represent the MAE for each pollster
+
+ggplot(pollster_accuracy, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
+  geom_bar(stat = "identity", fill = "purple", alpha = 0.7) +
+  labs(
+    title = "Pollster Accuracy (Mean Absolute Error)",
+    x = "Pollster",
+    y = "Mean Absolute Error"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+
+# Additional questions
+poll_calibration
+# How does the polling error change as the election date approaches?
+# How does polling error vary by party?
+
+polling_error_by_party <- poll_calibration |> 
+  group_by(party) |> 
+  summarize(
+    mean_abs_error = mean(abs_error, na.rm = TRUE),# mean abs error column
+    sd_abs_error = sd(abs_error, na.rm = TRUE)
+  ) |> 
+  arrange(mean_abs_error)
+
+polling_error_by_party # I get a lot of NA idk why...
+```
