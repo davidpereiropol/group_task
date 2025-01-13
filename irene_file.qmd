@@ -332,7 +332,7 @@ ggplot(second_combined, aes(
     values = c(
       "PP" = "#1db4e8",
       "PSOE" = "#c30505",
-      "Others" = "gray60",
+      "OTHERS" = "gray60",
       "Podemos" = "#a444b4",
       "PNV" = "darkgreen",
       "BNG" = "lightblue",
@@ -364,6 +364,135 @@ ggplot(second_combined, aes(
 
 
 
+
+```
+
+```{r}
+new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
+                 "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA")
+
+catalunya <- election_data_tidy |> 
+  mutate(party_recoded = case_when(
+    party %in% new_parties ~ party, TRUE ~ party_recoded),
+         siglas = case_when(
+        party_recoded == "JUNTS PER CATALUNYA-JUNTS" ~ "CIU",
+        party_recoded == "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA" ~ "CIU",
+        TRUE ~ siglas)) 
+
+catalunya <- catalunya |>
+  group_by(date, cod_mun) |>
+  filter(codigo_ccaa == "09") |> 
+  distinct(party_recoded, .keep_all = TRUE) |> 
+  ungroup() |> 
+  mutate(
+    province = case_when(
+      codigo_provincia == "08" ~ "Barcelona",
+      codigo_provincia == "17" ~ "Girona",
+      codigo_provincia == "25" ~ "Lleida",
+      codigo_provincia == "43" ~ "Tarragona",
+      TRUE ~ "Unknown"))
+
+
+catalunya <- catalunya |> 
+  group_by(date, municipio, party_recoded) |>
+  mutate(votes_recoded = sum(votes, na.rm = TRUE))
+
+catalunya <- catalunya |> 
+  group_by(date, siglas) |> 
+  mutate(vote_share = (votes_recoded / votos_candidaturas) * 100)
+
+catalunya_votes <- catalunya |>
+  filter(party_recoded != "OTHER") |> 
+  group_by(date, province, siglas) |> 
+  summarize(total_votes = sum(votes, na.rm = TRUE), .groups = "drop") |> 
+  group_by(date, province) |> 
+  mutate(
+    vote_percentage = (total_votes / sum(total_votes)) * 100,
+    independentist = ifelse(
+      siglas %in% independentist_parties, "Independentist",
+      "Non-Independentist")) |> 
+  ungroup()
+
+
+head(catalunya_votes)
+```
+```{r}
+#Definir partidos independentistas
+independentist_parties <- c("ERC", "CIU")
+
+#Clasificar partidos como independentistas o no
+dataset <- catalunya_votes %>%
+  mutate(independentist = ifelse(siglas %in% independentist_parties, "Independentist", "Non-Independentist"))
+
+#Calcular el porcentaje de votos por bloque
+votos_porcentaje <- dataset |> 
+  group_by(date, independentist) |> 
+  summarise(total_votes = sum(total_votes), .groups = "drop") |> 
+  group_by(date) |> 
+  mutate(percentage = (total_votes / sum(total_votes)) * 100)
+
+#Gráfico de líneas comparando bloques
+ggplot(votos_porcentaje, aes(x = date, y = percentage, color = independentist, group = independentist)) +
+  geom_line(size = 1.2) +  # Líneas de evolución
+  geom_point(size = 3) +   # Puntos para destacar elecciones
+  scale_color_manual(
+    values = c("Independentist" = "darkblue", "Non-Independentist" = "darkred"),
+    labels = c("Independentist" = "Pro-Independence", "Non-Independentist" = "Non-Independence")
+  ) +
+  labs(
+    title = "Comparison of Pro-Independence vs Non-Independence Vote in Catalonia",
+    x = "Election Year",
+    y = "Percentage of Votes (%)",
+    color = "Political Bloc",
+    caption = "Source: Electoral Data"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.position = "top",
+    plot.margin = margin(10, 10, 10, 10)
+  )
+
+
+```
+
+```{r}
+
+votos_porcentaje_p <- dataset |> 
+  group_by(date, independentist, province) |> 
+  summarise(total_votes = sum(total_votes), .groups = "drop") |> 
+  group_by(date, province) |> 
+  mutate(percentage = (total_votes / sum(total_votes)) * 100)
+
+
+ggplot(votos_porcentaje_p, aes(x = date, y = percentage, color = independentist, group = independentist)) +
+  geom_line(size = 1.2) +  
+  geom_point(size = 2) +   
+  scale_color_manual(
+    values = c("Independentist" = "darkblue", "Non-Independentist" = "darkred"),
+    labels = c("Independentist" = "Pro-Independence", "Non-Independentist" = "Non-Independence")
+  ) +
+  labs(
+    title = "Evolution of Pro-Independence vs Non-Independence Vote",
+    x = "Election Year",
+    y = "Percentage of Votes (%)",
+    color = "Political Bloc",
+    caption = "Source: Electoral Data"
+  ) +
+  facet_wrap(~ province, ncol = 2) +  
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top",
+    strip.text = element_text(size = 12, face = "bold"),  
+    plot.margin = margin(10, 10, 10, 10)
+  )
 
 ```
 
