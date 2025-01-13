@@ -47,7 +47,8 @@ election_data_tidy <- election_data |>
       str_detect(party, "BLOQUE NACIONALISTA GALEGO|CANDIDATURA GALEGA") ~ "BLOQUE NACIONALISTA GALEGO",
       str_detect(party, "PARTIDO POPULAR") ~ "PARTIDO POPULAR",
       str_detect(party, "MÁS PAÍS") ~ "MÁS PAÍS",
-      str_detect(party, "ESQUERRA REPUBLICANA DE CATALUNYA") ~ "ESQUERRA REPUBLICANA DE CATALUNYA",
+      str_detect(party, "ESQUERRA REPUBLICANA DE CATALUNYA|ESQUERRA REPUBLICANA/CATALUNYA") ~ "ESQUERRA REPUBLICANA DE CATALUNYA",
+      party %in% important_parties ~ party,
       TRUE ~ "OTHER"
     ),
     date = glue("{anno}-{mes}-01") |> as_date()
