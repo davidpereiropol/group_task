@@ -45,7 +45,7 @@ winners_by_party <- winners |>
 ```{r, fig.height = 8, fig.width = 10}
 
 library(showtext)
-font_add_google("Roboto", "roboto")
+font_add_google("Roboto Condensed", "Roboto")
 # Modificar el dataframe para que "date" sea un factor con solo las fechas presentes en los datos
 winners$date <- factor(winners$date, levels = unique(winners$date))
 
@@ -137,7 +137,7 @@ ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_rec
       "VOX" = "Vox",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
       "CONVERGENCIA I UNIO" = "CiU"
-    ),
+    ))  +
   scale_fill_manual(
     values = c(
       "PARTIDO POPULAR" = "#1db4e8",
