@@ -26,6 +26,8 @@ library(tidyverse)
 library(readr)
 library(glue)
 library(ggplot2)
+library(ggrepel)
+library(lubridate)
 ```
 
 
@@ -701,16 +703,136 @@ ggplot(type_combined, aes(x = date, y = num_municipalities, fill = party_recoded
 
 > How to calibrate the error of the polls (remember that the polls are voting intentions at national level)?
 
+```{r}
+
+elections_aggregated2 <- election_data_tidy |> 
+  group_by(date, cod_mun) |> 
+  distinct(total_votes, .keep_all = TRUE) |> 
+  summarize(
+    participation = sum(total_votes),
+    .groups = "drop"
+  ) |> 
+  group_by(date) |> 
+  summarise(participation_total = sum(participation),
+    .groups = "drop"
+  )
+
+elections_aggregated1 <- election_data_tidy |> 
+  group_by(date, party_recoded, siglas) |> 
+  summarize(
+    total_votes_all = sum(votes, na.rm = TRUE),
+    .groups = "drop"
+  ) 
+
+elections_with_shares <- elections_aggregated1 |> 
+  left_join(elections_aggregated2, by = "date") |> 
+  mutate(vote_share = (total_votes_all / participation_total) * 100)
+
+```
+
+```{r}
+
+poll_calibration <- surveys_tidy |> 
+  mutate(year_month_elec = floor_date(date_elec, "month")) |> # I will extract year and month (lubridate package)
+  left_join(
+    elections_with_shares |> 
+      mutate(year_month = floor_date(date, "month")),          # I will extract year and month
+    by = c("year_month_elec" = "year_month", "party" = "siglas")
+  )
+
+poll_calibration <- poll_calibration |> 
+  mutate(error = estimation - vote_share)
+
+poll_calibration |> select(error)
+
+```
+
 ---
 
 ## Question 6
 
 > Which polling houses got it right the most and which ones deviated the most from the results?
 
+```{r}
+
+# Error analysis: summary of errors by pollster or any other factor
+
+error_analysis <- poll_calibration |> 
+  group_by(pollster) |> 
+  summarize(
+    mean_error = mean(abs(error), na.rm = TRUE),
+    sd_error = sd(error, na.rm = TRUE)
+  )
+
+```
+
+```{r}
+
+poll_calibration <- poll_calibration |> 
+  mutate(abs_error = abs(error))  
+
+pollster_accuracy <- poll_calibration |> 
+  group_by(pollster) |> 
+  summarize(
+    mean_abs_error = mean(abs_error, na.rm = TRUE),# mean abs error column
+    sd_abs_error = sd(abs_error, na.rm = TRUE)
+  ) |> 
+  arrange(mean_abs_error)
+
+# Bar plot to represent the MAE for the hightst 10 pollsters
+top_pollsters <- pollster_accuracy %>%
+  slice_max(mean_abs_error, n = 10)  
+
+ggplot(top_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
+  geom_bar(stat = "identity", fill = "purple", alpha = 0.7) +
+  labs(
+    title = "Top 10 Pollster with Highest Mean Absolute Error",
+    x = "Pollster",
+    y = "Mean Absolute Error"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+```
+
+---
+
+```{r}
+# Bar plot to represent the MAE for the lowest 10 pollsters
+low_pollsters <- pollster_accuracy %>%
+  slice_min(mean_abs_error, n = 10)  
+
+ggplot(low_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
+  geom_bar(stat = "identity", fill = "purple", alpha = 0.7) +
+  labs(
+    title = "Top 10 Pollster with Lowest Mean Absolute Error",
+    x = "Pollster",
+    y = "Mean Absolute Error"
+  ) +
+  coord_flip() +
+  theme_minimal()
+```
+
 ---
 
 ## Creative 1
 
+> How does polling error vary by party?
+
+```{r}
+
+polling_error_by_party <- poll_calibration |> 
+  group_by(party) |> 
+  summarize(
+    mean_abs_error = mean(abs_error, na.rm = TRUE),
+    sd_abs_error = sd(abs_error, na.rm = TRUE)
+  ) |> 
+  arrange(mean_abs_error) |> 
+  head(10)
+
+polling_error_by_party 
+
+```
 ---
 
 ## Creative 2
