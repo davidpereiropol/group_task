@@ -28,14 +28,17 @@ elections_processed
 
 
 elections_aggregated2 <- elections_processed |> 
+  group_by(date, cod_mun) |> 
   distinct(votos_candidaturas_complete, .keep_all = TRUE) |> 
-  group_by(date) |> 
   summarize(
     participation = sum(votos_candidaturas_complete),
     .groups = "drop"
-  ) 
+  ) |> 
+  group_by(date) |> 
+  summarise(participation_total = sum(participation),
+    .groups = "drop"
+  )
 elections_aggregated2
-
 
 
 elections_aggregated1 <- elections_processed |> 
