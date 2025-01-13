@@ -4,7 +4,9 @@ author: "Pablo Aísa"
 format: html
 editor: visual
 ---
+
 Data
+
 ```{r}
 
 library(tidyverse)
