@@ -4,7 +4,9 @@ author: "Pablo Aísa"
 format: html
 editor: visual
 ---
+
 Data
+
 ```{r}
 
 library(tidyverse)
@@ -99,6 +101,7 @@ second_pp_sum <- second_pp |>
 ```
 
 Cataluña elections
+
 ```{r}
 new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
                  "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA")
@@ -107,6 +110,10 @@ catalunya <- election_data_tidy |>
   mutate(party_recoded = 
            case_when(party %in% new_parties ~ party, 
                      TRUE ~ party_recoded))
+catalunya <- catalunya |> 
+  group_by(date, cod_mun) |> 
+  distinct(party_recoded, .keep_all = TRUE) |> 
+  ungroup()
 
 catalunya <- catalunya |> 
   filter(codigo_ccaa == "09") |> 
@@ -133,4 +140,3 @@ g <- ggplot(catalunya_votes, aes(x = date, y = total_votes, color = party_recode
   )
 
 ```
-
