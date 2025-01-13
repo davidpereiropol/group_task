@@ -4,23 +4,247 @@ format: html
 editor: visual
 ---
 
-## Quarto
+### Question 3
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+Who benefits from low turnout? Dddd
 
 ```{r}
-1 + 1
+
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(tidyr)
+library(broom)
+
+load(file = "data/elections_tidy.rda")
+
+x <- election_data_tidy
+# election_data_tidy <- x
+
+
+election_data_tidy <- election_data_tidy |> 
+  group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
+  mutate(
+    total_votes = votos_blancos + votos_nulos + votos_candidaturas,
+    turnout = total_votes / censo,
+    votes_recoded = sum(votes, na.rm = TRUE),
+    vote_share_by_party = votes_recoded / total_votes
+  ) |> 
+  ungroup()
+
+# regression model with interaction between turnout and party
+model_all <- lm(vote_share_by_party ~ turnout * party_recoded, data = election_data_tidy)
+
+summary(model_all)
+
+# tidy(model_all)
+
+
+# Let's try to visualise the model in a meaningful way
+
+# Attempt 1
+
+ggplot(election_data_tidy, aes(x = turnout, y = vote_share_by_party, colour = party_recoded)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Party-Specific Trends: Vote Share vs Turnout",
+    x = "Turnout",
+    y = "Vote Share",
+    colour = "Party"
+  ) +
+  theme_minimal()
+
+
+# Attempt 2
+
+data <- election_data_tidy |> 
+  mutate(
+    turnout_category = cut(
+      turnout,
+      breaks = c(0, 0.4, 0.6, 0.8, 1), 
+      labels = c("Low", "Medium", "High", "Very High"),
+      include.lowest = TRUE
+    )
+  )
+
+summary_data <- data |> 
+  group_by(turnout_category, party_recoded) |> 
+  summarise(
+    avg_vote_share = mean(vote_share_by_party, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Attempt 3
+ggplot(summary_data, aes(x = turnout_category, y = avg_vote_share, fill = party_recoded)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Vote Share by Turnout Level and Party",
+    x = "Turnout Category",
+    y = "Average Vote Share",
+    fill = "Party"
+  ) +
+  theme_minimal()
+
+
+# Attempt 4 
+
+  ggplot(election_data_tidy, aes(x = party_recoded, y = vote_share_by_party, fill = as.factor(turnout))) +
+    geom_violin(trim = FALSE) + 
+    labs(
+      title = "Vote Share by Party with Voter Turnout",
+      x = "Party",
+      y = "Vote Share by Party",
+      fill = "Turnout"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+
+
 ```
 
-You can add options to executable code like this
+# Proposal for creative / free questions
+
+Would this be a good idea? Assume 5% of voters arrive after 6 pm. Ask Mafalda
+
+compare differences between the hours and how that benefit the different partıes
+
+maybe some parties get more votes at the beginning
+
+Which means that the predictions over the day favor them first, example: USA republicans are always stronger than democrats in the early hours of the election day.
+
+Could it be that older people vote earlier and young people vote later be a determinant of how the election goes?
+
+The below code addresses the late arrivals (after 6 pm) with a share of 0.05% of whole voters. We might need it so let's keep it passive for now.
+
+```{r, eval=FALSE}
+late_arrival_estimate <- 0.05 
+adjusted_participacion_2 <- participacion_2 * (1 + late_arrival_estimate)
+```
+
+For meeting the filtering criteria for the surveys dataset.
+
+```{r, eval=FALSE}
+filtered_surveys <- surveys_tidy |>
+  mutate(field_days = as.numeric(difftime(field_date_to, field_date_from, units = "days")) + 1) |>
+  filter(year(date_elec) >= 2018,
+         is.na(size) | size >= 750,
+         field_days >= 1, 
+         exit_poll == FALSE)
+
+```
+
+```{r,eval=FALSE}
+
+# We haven't decided yet if we will categorise turnout like this. 
+
+# to decide what makes a low, mid, and high turnout
+
+election_data_tidy <-
+  election_data_tidy |> 
+  mutate(turnout_category = case_when(
+    participacion_2 < 50 ~ "Low Turnout",
+    participacion_2 >= 50 & participacion_2 < 70 ~ "Middle Turnout",
+    participacion_2 >= 70 ~ "High Turnout"
+  ))
+```
+
+### Question 4
+
+How to analyze the relationship between census and vote? Is it true that certain parties win in rural areas?
+
+The steps for addressing this question:
+
+-   We might use 'censo' (census, aka population) as a proxy for describing rural and urban
+
+<!-- -->
+
+-   Defining area types: what 'urban' and 'rural' refer to in terms of numbers (censo)
+
+    -   An idea could be to use 'INE' for coming up with a distinction.
+
+[@gómezvalenzuela2023]
+
+-   Lastly, we will assess the relationship between area type and vote share.
 
 ```{r}
-#| echo: false
-2 * 2
-```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+
+x <- election_data_tidy
+# election_data_tidy <- x
+
+election_data_tidy <- election_data_tidy |> 
+  group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
+  mutate(
+    total_votes = votos_blancos + votos_nulos + votos_candidaturas,
+    turnout = total_votes / censo,
+    votes_recoded = sum(votes, na.rm = TRUE),
+    vote_share_by_party = votes_recoded / total_votes
+  ) |> 
+  ungroup()
+
+
+# First part 
+
+# Onto the model
+
+model_census_vote <- lm(vote_share_by_party ~ censo * party_recoded, data = election_data_tidy)
+
+# Summarize the model
+summary(model_census_vote)
+
+
+# Let's visualise the model for the first part
+
+ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, colour = party_recoded)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Party-Specific Trends: Vote Share vs Census",
+    x = "Census",
+    y = "Vote Share",
+    colour = "Party"
+  ) +
+  theme_minimal()
+
+# For the second part - rural vs urban
+
+election_data_tidy <- election_data_tidy |> 
+  mutate(
+    area_type = ifelse(censo < 10000, "Rural", "Urban")
+  )
+
+model_area_type <- lm(vote_share_by_party ~ area_type * party_recoded, data = election_data_tidy)
+summary(model_area_type)
+
+rural_municipalities <- election_data_tidy |>
+  filter(area_type == "Rural")
+
+# Winning parties
+winners <- rural_municipalities |> 
+  group_by(date, municipio) |> 
+  slice_max(votes_recoded, n = 1, with_ties = FALSE) |> 
+  select(date, party_recoded, municipio, censo)
+
+# Number of municipalities won
+winners_by_party <- winners |> 
+  group_by(date, party_recoded)|> 
+  summarize(num_municipalities = n(), .groups = "drop") |> 
+  arrange(date, desc(num_municipalities))
+
+
+urban_municipalities <- election_data_tidy |>
+  filter(area_type == "Urban")
+
+# Winning parties
+winners_urban <- urban_municipalities |> 
+  group_by(date, municipio) |> 
+  slice_max(votes_recoded, n = 1, with_ties = FALSE) |> 
+  select(date, party_recoded, municipio, censo)
+
+# Number of municipalities won
+winners_by_party_urban <- winners_urban |> 
+  group_by(date, party_recoded)|> 
+  summarize(num_municipalities = n(), .groups = "drop") |> 
+  arrange(date, desc(num_municipalities))
+
+```

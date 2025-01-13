@@ -1,0 +1,29 @@
+---
+title: "original_gur_mafalda_david"
+format: html
+editor: visual
+---
+
+```{r}
+load("data/elections_tidy_wo_na.rda")
+
+library(tidyverse)
+
+election_data_tidy_woNA <- election_data_tidy_woNA |> 
+  group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
+  mutate(
+    total_votes = votos_blancos + votos_nulos + votos_candidaturas,
+    turnout = total_votes / censo,
+    votes_recoded = sum(votes, na.rm = TRUE),
+    vote_share_by_party = votes_recoded / total_votes
+  ) |> 
+  ungroup()
+
+election_data_tidy_woNA <- election_data_tidy_woNA |> 
+  mutate(
+    pcg_participation1 = (participacion_1 / total_votes) * 100,
+    pcg_participation2 = (participacion_2 / total_votes) * 100
+  )
+```
+
+
