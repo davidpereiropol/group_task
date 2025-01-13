@@ -4,26 +4,107 @@ format: html
 editor: visual
 ---
 
+
+### Delete later
+
 ```{r}
-load("data/elections_tidy_wo_na.rda")
+elections_processed <- election_data_tidy |> 
+   mutate(votos_candidaturas_complete = 
+            votos_blancos + votos_nulos + votos_candidaturas)
 
-library(tidyverse)
-
-election_data_tidy_woNA <- election_data_tidy_woNA |> 
-  group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
-  mutate(
-    total_votes = votos_blancos + votos_nulos + votos_candidaturas,
-    turnout = total_votes / censo,
-    votes_recoded = sum(votes, na.rm = TRUE),
-    vote_share_by_party = votes_recoded / total_votes
+elections_aggregated2 <- elections_processed |> 
+  group_by(date, cod_mun) |> 
+  distinct(votos_candidaturas_complete, .keep_all = TRUE) |> 
+  summarize(
+    participation = sum(votos_candidaturas_complete),
+    .groups = "drop"
   ) |> 
-  ungroup()
-
-election_data_tidy_woNA <- election_data_tidy_woNA |> 
-  mutate(
-    pcg_participation1 = (participacion_1 / total_votes) * 100,
-    pcg_participation2 = (participacion_2 / total_votes) * 100
+  group_by(date) |> 
+  summarise(participation_total = sum(participation),
+    .groups = "drop"
   )
+
+elections_aggregated1 <- elections_processed |> 
+  group_by(date, party_recoded) |> 
+  summarize(
+    total_votes_all = sum(votes, na.rm = TRUE),
+    .groups = "drop"
+  ) 
 ```
+
+
+### Creative Question - Polarisation
+
+By finding the most successful two parties for each year, calculate a polarisation index.
+
+Then, compare polarisation of vote of no confidence elections with the rest.
+
+```{r}
+
+polarization_calc <- function(data, year) {
+
+if (!year %in% c(2008, 2011, 2015, 2016, 2019, "all")) {
+    warning("Hey you! The year has to be one of these values: 2008, 2011, 2015, 2016, 2019, or 'all' (in quotes!) if you want to see the information for all years. Thanks :). Output:")
+    return(NULL)
+  }  
+  
+elections_processed <- data |> 
+   mutate(votos_candidaturas_complete = 
+            votos_blancos + votos_nulos + votos_candidaturas)
+
+elections_aggregated_total <- elections_processed |> 
+  group_by(date, cod_mun) |> 
+  distinct(votos_candidaturas_complete, .keep_all = TRUE) |> 
+  summarize(
+    participation = sum(votos_candidaturas_complete),
+    .groups = "drop"
+  ) |> 
+  group_by(date) |> 
+  summarise(participation_total = sum(participation),
+    .groups = "drop" 
+  )
+
+elections_aggregated_parties <- elections_processed |> 
+  group_by(date, party_recoded) |> 
+  summarize(
+    total_votes_all = sum(votes, na.rm = TRUE),
+    .groups = "drop"
+  ) 
+
+elections_top_parties <- 
+  elections_aggregated_parties |> 
+  group_by(date) |> 
+  slice_max(total_votes_all, n = 2) |> 
+  summarise(top_parties_votes = sum(total_votes_all))
+  
+  polarization_index <- elections_top_parties |> 
+    left_join(elections_aggregated_total, by = "date") |> 
+    mutate(
+      polarization_index = top_parties_votes / participation_total
+    )
+  if (year != "all") {
+    polarization_index <- 
+      polarization_index |> 
+      filter(year(date) == year)
+  }
+ return(polarization_index)
+}
+polarization_calc(election_data_tidy, 2012)
+polarization_calc(election_data_tidy, 'all')
+polarization_calc(election_data_tidy, 2019)
+
+
+
+
+```
+
+
+
+
+```{r}
+
+```
+
+
 
 
