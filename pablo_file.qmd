@@ -4,7 +4,9 @@ author: "Pablo Aísa"
 format: html
 editor: visual
 ---
+
 Data
+
 ```{r}
 
 library(tidyverse)
@@ -20,9 +22,7 @@ Which party was the winner in the municipalities with more than 100,000 habitant
 ```{r}
 
 # Filter
-elections <- election_data_tidy
-
-elections2 <- election_data_tidy |> 
+elections <- election_data_tidy |> 
   group_by(date, municipio, party_recoded) |> 
   mutate(votes_recoded = sum(votes, na.rm = TRUE))
 
@@ -32,20 +32,11 @@ str(elections)
 large_municipalities <- elections |>
   filter(censo > 100000)
 
-large_municipalities2 <- elections2 |>
-  filter(censo > 100000)
-
 # Winning parties
 winners <- large_municipalities |> 
   group_by(date, municipio) |> 
   slice_max(votes, n = 1, with_ties = FALSE) |> 
   ungroup()
-
-winners2 <- large_municipalities2 |>
-  group_by(date, municipio) |> 
-  slice_max(votes_recoded, n = 1, with_ties = FALSE) |> 
-  ungroup()
-
 
 # Number of municipalities won
 elections_winners <- winners |> 
@@ -53,15 +44,6 @@ elections_winners <- winners |>
   summarize(num_municipalities = n(), .groups = "drop") |> 
   arrange(date, desc(num_municipalities))
 
-elections_winners2 <- winners2 |> 
-  group_by(date, party_recoded)|> 
-  summarize(num_municipalities = n(), .groups = "drop") |> 
-  arrange(date, desc(num_municipalities))
-
-prueba <- elections_winners |> 
-  left_join(elections_winners2, by = c("date", "party_recoded"))
-
-## No sé si quiere el ganador en cada elección, es decir, el que ganó en más municipios grandes o lo que he hecho que son todos los partidos que hayan ganado en alguno, aunque sólo sea uno.
 ```
 
 Second question
@@ -115,5 +97,46 @@ second_pp_sum <- second_pp |>
     .groups = "drop"
   ) |> 
   arrange(date, desc(num_municipalities))
+
+```
+
+Cataluña elections
+
+```{r}
+new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
+                 "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA")
+
+catalunya <- election_data_tidy |> 
+  mutate(party_recoded = 
+           case_when(party %in% new_parties ~ party, 
+                     TRUE ~ party_recoded))
+catalunya <- catalunya |> 
+  group_by(date, cod_mun) |> 
+  distinct(party_recoded, .keep_all = TRUE) |> 
+  ungroup()
+
+catalunya <- catalunya |> 
+  filter(codigo_ccaa == "09") |> 
+  group_by(date, municipio, party_recoded) |>
+  mutate(votes_recoded = sum(votes, na.rm = TRUE))
+
+catalunya_votes <- catalunya |> 
+  group_by(date, party_recoded) |> 
+  summarize(total_votes = sum((votes_recoded)), .groups = "drop")
+
+# Crear el gráfico de evolución de los votos por partido
+g <- ggplot(catalunya_votes, aes(x = date, y = total_votes, color = party_recoded, group = party_recoded)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Evolución de los Votos de los Partidos en Cataluña",
+    x = "Año de Elección",
+    y = "Total de Votos",
+    color = "Partido"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
 
 ```

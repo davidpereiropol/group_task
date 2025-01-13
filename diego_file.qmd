@@ -17,18 +17,49 @@ library(ggplot2)
 
 load("data/elections_tidy.rda")
 load("data/surveys_tidy.rda")
-
-head(election_data_tidy)
+election_data_tidy
 # I will aggregate votes and calculate vote shares at the national level.
 
-elections_aggregated <- election_data_tidy |> 
-  group_by(date, siglas) |> 
+elections_processed <- election_data_tidy |> 
+   mutate(votos_candidaturas_complete = 
+            votos_blancos + votos_nulos + votos_candidaturas)
+
+elections_processed
+
+
+elections_aggregated2 <- elections_processed |> 
+  group_by(date, cod_mun) |> 
+  distinct(votos_candidaturas_complete, .keep_all = TRUE) |> 
   summarize(
-    total_votes = sum(votes, na.rm = TRUE), 
-    total_participation = sum(votos_candidaturas, na.rm = TRUE) 
+    participation = sum(votos_candidaturas_complete),
+    .groups = "drop"
   ) |> 
-  mutate(vote_share = total_votes / total_participation * 100) 
-elections_aggregated
+  group_by(date) |> 
+  summarise(participation_total = sum(participation),
+    .groups = "drop"
+  )
+elections_aggregated2
+
+
+elections_aggregated1 <- elections_processed |> 
+  group_by(date, party_recoded) |> 
+  summarize(
+    total_votes_all = sum(votes, na.rm = TRUE),
+    .groups = "drop"
+  ) 
+elections_aggregated1
+
+
+elections_with_shares <- elections_aggregated1 |> 
+  left_join(elections_aggregated2, by = "date") |> 
+  mutate(vote_share = (total_votes_all / participation) * 100)
+elections_with_shares
+
+
+elections_with_shares |> 
+  filter(date == "2016-06-01")
+
+
 ```
 
 ```{r}
@@ -117,9 +148,19 @@ ggplot(pollster_accuracy, aes(x = reorder(pollster, mean_abs_error), y = mean_ab
   coord_flip() +
   theme_minimal()
 
+```
+
+Additional question: **How does polling error vary by party?**
+
+This question can help reveal if certain parties are systematically underestimated or overestimated in the polls, which might indicate biases in polling methodologies, media influence, or the volatility of support for specific parties.
+
+```{r}
+
+
 
 # Additional questions
-poll_calibration
+poll_calibration |> 
+  filter(party == "EH-BILDU")
 # How does the polling error change as the election date approaches?
 # How does polling error vary by party?
 
@@ -132,4 +173,11 @@ polling_error_by_party <- poll_calibration |>
   arrange(mean_abs_error)
 
 polling_error_by_party # I get a lot of NA idk why...
+
 ```
+
+### Expected Insights:
+
+-   **Parties with Larger Errors**: If some parties consistently show larger errors, this might suggest challenges in accurately predicting voter support for those parties.
+
+-   **Parties with Smaller Errors**: Parties with more stable or predictable support might have smaller polling errors.
