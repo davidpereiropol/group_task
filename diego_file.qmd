@@ -42,7 +42,7 @@ elections_aggregated2
 
 
 elections_aggregated1 <- elections_processed |> 
-  group_by(date, party_recoded) |> 
+  group_by(date, party_recoded, siglas) |> 
   summarize(
     total_votes_all = sum(votes, na.rm = TRUE),
     .groups = "drop"
@@ -52,7 +52,7 @@ elections_aggregated1
 
 elections_with_shares <- elections_aggregated1 |> 
   left_join(elections_aggregated2, by = "date") |> 
-  mutate(vote_share = (total_votes_all / participation) * 100)
+  mutate(vote_share = (total_votes_all / participation_total) * 100)
 elections_with_shares
 
 
@@ -69,7 +69,7 @@ head(surveys_tidy)
 poll_calibration <- surveys_tidy |> 
   mutate(year_month_elec = floor_date(date_elec, "month")) |> # I will extract year and month (lubridate package)
   left_join(
-    elections_aggregated |> 
+    elections_with_shares |> 
       mutate(year_month = floor_date(date, "month")),          # I will extract year and month
     by = c("year_month_elec" = "year_month", "party" = "siglas")
   )
@@ -90,25 +90,10 @@ poll_calibration
 error_analysis <- poll_calibration |> 
   group_by(pollster) |> 
   summarize(
-    mean_error = mean(error, na.rm = TRUE),
-    sd_error = sd(error, na.rm = TRUE),
-    n_polls = n()
+    mean_error = mean(abs(error), na.rm = TRUE),
+    sd_error = sd(error, na.rm = TRUE)
   )
 error_analysis
-
-# Boxplot grouped by pollster (any other suggetions for graphs??)
-ggplot(poll_calibration, aes(x = reorder(pollster, error, FUN = median), y = error)) +
-  geom_boxplot() +
-  labs(
-    title = "Polling Errors by Pollster",
-    x = "Pollster",
-    y = "Polling Error"
-  ) +
-  coord_flip() +
-  theme_minimal()
-
-
-  
 
 ```
 
@@ -148,6 +133,35 @@ ggplot(pollster_accuracy, aes(x = reorder(pollster, mean_abs_error), y = mean_ab
   coord_flip() +
   theme_minimal()
 
+# Bar plot to represent the MAE for the hightst 10 pollsters
+top_pollsters <- pollster_accuracy %>%
+  slice_max(mean_abs_error, n = 10)  
+
+ggplot(top_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
+  geom_bar(stat = "identity", fill = "purple", alpha = 0.7) +
+  labs(
+    title = "Top 10 Pollster with Highest Mean Absolute Error",
+    x = "Pollster",
+    y = "Mean Absolute Error"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+# Bar plot to represent the MAE for the lowest 10 pollsters
+low_pollsters <- pollster_accuracy %>%
+  slice_min(mean_abs_error, n = 10)  
+
+ggplot(low_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
+  geom_bar(stat = "identity", fill = "purple", alpha = 0.7) +
+  labs(
+    title = "Top 10 Pollster with Lowest Mean Absolute Error",
+    x = "Pollster",
+    y = "Mean Absolute Error"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+
 ```
 
 Additional question: **How does polling error vary by party?**
@@ -170,9 +184,10 @@ polling_error_by_party <- poll_calibration |>
     mean_abs_error = mean(abs_error, na.rm = TRUE),# mean abs error column
     sd_abs_error = sd(abs_error, na.rm = TRUE)
   ) |> 
-  arrange(mean_abs_error)
+  arrange(mean_abs_error) |> 
+  head(10)
 
-polling_error_by_party # I get a lot of NA idk why...
+polling_error_by_party 
 
 ```
 
