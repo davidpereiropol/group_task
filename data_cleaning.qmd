@@ -39,12 +39,7 @@ election_data_tidy <- election_data |>
   pivot_longer(cols = -(1:15), names_to = "party", values_to = "votes") |> 
   mutate(
     party_recoded = case_when(
-      str_detect(party, str_c(c(
-        "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
-        "PARTIT DELS SOCIALISTES DE CATALUNYA",
-        "PARTIDO SOCIALISTA DE EUSKADI",
-        "PARTIDO DOS SOCIALISTAS DE GALICIA"
-      ), collapse = "|")) ~ "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
+       str_detect(party, "PARTIDO SOCIALISTA OBRERO ESPAÑOL|PARTIT DELS SOCIALISTES DE CATALUNYA|PARTIDO SOCIALISTA DE EUSKADI|PARTIDO DOS SOCIALISTAS DE GALICIA") ~ "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
       str_detect(party, "PARTIDO DE LA CIUDADANIA|PARTIDO DE LA CIUDADANÍA") ~ "CIUDADANOS-PARTIDO DE LA CIUDADANIA",
       str_detect(party, "EH - BILDU|ARALAR|ALTERNATIBA|EUSKO ALKARTASUNA") ~ "EUSKAL HERRIA BILDU",
       str_detect(party, "UNIDAS PODEMOS|EN MAREA|PODEM|EZKER BATUA|IZQUIERDA UNIDA|ESQUERRA UNIDA|ESQUERDA UNIDA") ~ "PODEMOS",
@@ -60,7 +55,6 @@ election_data_tidy <- election_data |>
     abbrev |> 
       distinct(denominacion, .keep_all = TRUE) |> 
       mutate(siglas = case_when(
-        is.na(siglas) ~ "OTHER",
         siglas == "C's" ~ "CS",
         siglas == "EH Bildu" ~ "EH BILDU",
         siglas == "M PAÍS" ~ "MP",
@@ -70,7 +64,10 @@ election_data_tidy <- election_data |>
   ) |> 
   left_join(cod_mun, by = "cod_mun") |> 
   select(-vuelta, -tipo_eleccion, -codigo_distrito_electoral) |> 
-  drop_na(votes) 
+  drop_na(votes) |> 
+  mutate(
+    siglas = if_else(is.na(siglas),"OTHER", siglas)
+  )
 
 surveys_tidy <- surveys |> 
   pivot_longer(cols = -(1:10), names_to = "party", values_to = "estimation")  |>
@@ -81,7 +78,7 @@ surveys_tidy <- surveys |>
     field_date_to - field_date_from >= 1
   ) |>
   select(-type_survey) |>
-  drop_na(size)
+  drop_na(size) 
 ```
 
 ```{r}
