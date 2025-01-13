@@ -16,6 +16,8 @@ buenas tardeas!!!!!!!! hola
 github_hater joined
 jajjaja
 
+just a trial :)
+
 ## Instructions (read before starting)
 
 -   Modify within the `.qmd` document your personal data (names and ID) located in the header of the file.
