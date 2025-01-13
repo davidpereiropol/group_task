@@ -21,6 +21,7 @@ load(file = "data/elections_tidy.rda")
 x <- election_data_tidy
 # election_data_tidy <- x
 
+View(election_data_tidy)
 
 election_data_tidy <- election_data_tidy |> 
   group_by(cod_mun, date, party_recoded) |> # Is it the same if we group by date?
@@ -32,13 +33,20 @@ election_data_tidy <- election_data_tidy |>
   ) |> 
   ungroup()
 
+election_data_tidy <- election_data_tidy |> 
+  mutate(
+    group_by()
+    pcg_participation1 = (participacion_1 / total_votes) * 100,
+    pcg_participation2 = ((participacion_2-participacion_1) / total_votes) * 100, 
+    pcg_participation3 = ((total_votes-participacion_2) / total_votes) * 100
+  )
+
 # regression model with interaction between turnout and party
 model_all <- lm(vote_share_by_party ~ turnout * party_recoded, data = election_data_tidy)
 
 summary(model_all)
 
 # tidy(model_all)
-
 
 # Let's try to visualise the model in a meaningful way
 
@@ -84,21 +92,6 @@ ggplot(summary_data, aes(x = turnout_category, y = avg_vote_share, fill = party_
     fill = "Party"
   ) +
   theme_minimal()
-
-
-# Attempt 4 
-
-  ggplot(election_data_tidy, aes(x = party_recoded, y = vote_share_by_party, fill = as.factor(turnout))) +
-    geom_violin(trim = FALSE) + 
-    labs(
-      title = "Vote Share by Party with Voter Turnout",
-      x = "Party",
-      y = "Vote Share by Party",
-      fill = "Turnout"
-    ) +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
-
 
 
 ```
@@ -248,3 +241,49 @@ winners_by_party_urban <- winners_urban |>
   arrange(date, desc(num_municipalities))
 
 ```
+
+
+
+### Creative Question - Polarisation
+
+By finding the most successful two parties for each year, calculate a polarisation index.
+
+Then, compare polarisation of vote of no confidence elections with the rest.
+
+```{r}
+
+polarization_calc <- function(election_data_tidy) {
+  library(dplyr)
+  
+  polarization_index <- election_data_tidy |> 
+    group_by(date) |> 
+    summarise(
+      total_votes = sum(total_votes, na.rm = TRUE),
+      leading_parties_votes = sum(head(sort(tapply(votes, siglas, sum), decreasing = TRUE), 2)),
+      polarization = (leading_parties_votes / total_votes) * 100
+    ) |> 
+    select(date, polarization)
+
+  return(polarization_index)
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
