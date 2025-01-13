@@ -103,40 +103,85 @@ second_pp_sum <- second_pp |>
 Cataluña elections
 
 ```{r}
+library(dplyr)
+library(ggplot2)
+library(showtext)
+
+font_add_google("Roboto Condensed", "roboto")
+
 new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
                  "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA")
 
 catalunya <- election_data_tidy |> 
-  mutate(party_recoded = 
-           case_when(party %in% new_parties ~ party, 
-                     TRUE ~ party_recoded))
-catalunya <- catalunya |> 
-  group_by(date, cod_mun) |> 
-  distinct(party_recoded, .keep_all = TRUE) |> 
-  ungroup()
-
-catalunya <- catalunya |> 
+  mutate(
+    party_recoded = case_when(
+      party %in% new_parties ~ party,
+      TRUE ~ party_recoded
+    ),
+    siglas = case_when(
+      party_recoded == "JUNTS PER CATALUNYA-JUNTS" ~ "CIU",
+      party_recoded == "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA" ~ "CIU",
+      TRUE ~ siglas
+    ),
+    province = case_when(
+      codigo_provincia == "08" ~ "Barcelona",
+      codigo_provincia == "17" ~ "Girona",
+      codigo_provincia == "25" ~ "Lleida",
+      codigo_provincia == "43" ~ "Tarragona",
+      TRUE ~ "Unknown"
+    )
+  ) |> 
   filter(codigo_ccaa == "09") |> 
-  group_by(date, municipio, party_recoded) |>
-  mutate(votes_recoded = sum(votes, na.rm = TRUE))
+  distinct(date, cod_mun, party_recoded, .keep_all = TRUE)
 
 catalunya_votes <- catalunya |> 
-  group_by(date, party_recoded) |> 
-  summarize(total_votes = sum((votes_recoded)), .groups = "drop")
+  group_by(date, province, siglas) |> 
+  summarize(total_votes = sum(votes, na.rm = TRUE), .groups = "drop") |> 
+  group_by(date, province) |> 
+  mutate(
+    vote_percentage = (total_votes / sum(total_votes)) * 100
+  ) |> 
+  ungroup()
 
-# Crear el gráfico de evolución de los votos por partido
-g <- ggplot(catalunya_votes, aes(x = date, y = total_votes, color = party_recoded, group = party_recoded)) +
-  geom_line() +
-  geom_point() +
+g <- ggplot(catalunya_votes, aes(x = date, y = vote_percentage, 
+                                 colour = siglas, group = siglas)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  facet_wrap(~ province, ncol = 2) +
+  scale_color_manual(
+    values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "ERC" = "#ffbf41",
+      "CIU" = "#1b348a",
+      "MP" = "#004938",
+      "CS" = "#eb6109",
+      "JUNTS" = "#00c3b3",
+      "CDC" = "#1c3687"
+    )) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
   labs(
-    title = "Evolución de los Votos de los Partidos en Cataluña",
-    x = "Año de Elección",
-    y = "Total de Votos",
-    color = "Partido"
+    title = "Elections in Catalonia over the years",
+    x = "Date of the election",
+    y = "Vote Share (%)",
+    color = "Party"
   ) +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines")
   )
+
+g
+ 
 
 ```
