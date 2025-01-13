@@ -107,16 +107,12 @@ library(dplyr)
 library(ggplot2)
 library(showtext)
 
-# Configuración de la fuente
 font_add_google("Roboto Condensed", "roboto")
 
-# Partidos que se consolidan como "CIU"
 new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
                  "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA")
 
-# Preprocesamiento de datos
 catalunya <- election_data_tidy |> 
-  # Reasignar partidos y siglas
   mutate(
     party_recoded = case_when(
       party %in% new_parties ~ party,
@@ -127,7 +123,6 @@ catalunya <- election_data_tidy |>
       party_recoded == "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA" ~ "CIU",
       TRUE ~ siglas
     ),
-    # Asignar nombres a las provincias
     province = case_when(
       codigo_provincia == "08" ~ "Barcelona",
       codigo_provincia == "17" ~ "Girona",
@@ -136,11 +131,9 @@ catalunya <- election_data_tidy |>
       TRUE ~ "Unknown"
     )
   ) |> 
-  # Filtrar datos para Cataluña y evitar duplicados por partido
   filter(codigo_ccaa == "09") |> 
   distinct(date, cod_mun, party_recoded, .keep_all = TRUE)
 
-# Calcular los votos totales y porcentaje de votos por provincia y fecha
 catalunya_votes <- catalunya |> 
   group_by(date, province, siglas) |> 
   summarize(total_votes = sum(votes, na.rm = TRUE), .groups = "drop") |> 
@@ -150,12 +143,11 @@ catalunya_votes <- catalunya |>
   ) |> 
   ungroup()
 
-# Crear el gráfico
 g <- ggplot(catalunya_votes, aes(x = date, y = vote_percentage, 
                                  colour = siglas, group = siglas)) +
   geom_line(linewidth = 1) +
   geom_point(size = 3) +
-  facet_wrap(~ province, ncol = 2) + # Facetas por provincia
+  facet_wrap(~ province, ncol = 2) +
   scale_color_manual(
     values = c(
       "PP" = "#1db4e8",
@@ -170,7 +162,7 @@ g <- ggplot(catalunya_votes, aes(x = date, y = vote_percentage,
       "JUNTS" = "#00c3b3",
       "CDC" = "#1c3687"
     )) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) + # Eje Y en porcentaje
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
   labs(
     title = "Elections in Catalonia over the years",
     x = "Date of the election",
@@ -189,8 +181,7 @@ g <- ggplot(catalunya_votes, aes(x = date, y = vote_percentage,
     legend.key.size = unit(1, "lines")
   )
 
-# Mostrar el gráfico
-print(g)
+g
  
 
 ```
