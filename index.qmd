@@ -837,6 +837,149 @@ polling_error_by_party
 
 ## Creative 2
 
+> By finding the most successful two parties for each year, calculate a polarisation index. Then, compare polarisation of vote of no confidence elections with the rest
+
+```{r}
+
+polarization_calc <- function(data, year) {
+
+if (!year %in% c(2008, 2011, 2015, 2016, 2019, "all")) {
+    warning("Hey you! The year has to be one of these values: 2008, 2011, 2015, 2016, 2019, or 'all' (in quotes!) if you want to see the information for all years. Thanks :). Output:")
+    return(NULL)
+  }  
+  
+elections_processed <- data |> 
+   mutate(votos_candidaturas_complete = 
+            votos_blancos + votos_nulos + votos_candidaturas)
+
+elections_aggregated_total <- elections_processed |> 
+  group_by(date, cod_mun) |> 
+  distinct(votos_candidaturas_complete, .keep_all = TRUE) |> 
+  summarize(
+    participation = sum(votos_candidaturas_complete),
+    .groups = "drop"
+  ) |> 
+  group_by(date) |> 
+  summarise(participation_total = sum(participation),
+    .groups = "drop" 
+  )
+
+elections_aggregated_parties <- elections_processed |> 
+  group_by(date, party_recoded) |> 
+  summarize(
+    total_votes_all = sum(votes, na.rm = TRUE),
+    .groups = "drop"
+  ) 
+
+elections_top_parties <- 
+  elections_aggregated_parties |> 
+  group_by(date) |> 
+  slice_max(total_votes_all, n = 2) |> 
+  summarise(top_parties_votes = sum(total_votes_all))
+  
+  polarization_index <- elections_top_parties |> 
+    left_join(elections_aggregated_total, by = "date") |> 
+    mutate(
+      polarization_index = top_parties_votes / participation_total
+    )
+  if (year != "all") {
+    polarization_index <- 
+      polarization_index |> 
+      filter(year(date) == year)
+  }
+ return(polarization_index)
+}
+
+```
+
+```{r}
+
+polarization_all <-
+  polarization_calc(election_data_tidy, 'all')
+
+polarization_all <-
+  polarization_all |> 
+  mutate(month_year = glue("{month(date)}-{year(date)}"))
+
+unique_dates <- unique(election_data_tidy$date)
+
+graph_info <- data.frame(
+  start_date = unique_dates,
+  end_date = c(unique_dates[-1], tail(unique_dates, 1)),
+  trend = c(
+    "Better Multiparty System",  
+    "Better Multiparty System",                  
+    "Worse Multiparty System",                  
+    "Better Multiparty System",                    
+    "Worse Multiparty System", 
+    "Nothing")  
+)
+
+graph <- polarization_all |> 
+  ggplot() +
+  aes(x = date, y = polarization_index) +
+  geom_point(size = 2, shape = 1) +
+  geom_line() +
+  geom_rect(data = graph_info,
+            aes(xmin = start_date, xmax = end_date, ymin = -Inf, ymax = Inf, fill = trend),
+            alpha = 0.3, inherit.aes = FALSE) +
+  geom_vline(data = graph_info, aes(xintercept = as.numeric(start_date)),
+             color = "gray50", linetype = "dashed", linewidth = 0.4) +
+  scale_x_continuous(breaks = c(2008, 2011, 2015, 2016, 2019),
+  ) +
+  labs(
+    title = "Polarization Index trend in General Elections",
+    x = "Date of Election",
+    y = "Polarization Index",
+    fill = "Polarization trend"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5, margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, color = "black"),
+    axis.text.y = element_text(size = 11, color = "black"),
+    axis.title.x = element_text(size = 10, face = "bold"),
+    axis.title.y = element_text(size = 10, face = "bold"),
+    legend.title = element_text(size = 11, face = "bold"),
+    legend.text = element_text(size = 10),
+    legend.box.background = element_rect(color = "black", linewidth = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines"),
+    panel.grid = element_blank()
+  )
+
+  
+  # Changing the colors of legends and background filling while getting rid of 'nothing' key manually
+  
+  graph <- 
+    graph +
+    scale_fill_manual(values = c(
+    "Better Multiparty System" = "#31a354",
+    "Worse Multiparty System" = "#de2d26")) 
+      
+
+graph <-
+  graph +
+  theme(
+    legend.justification = "center",
+    legend.title = element_text(hjust = 0.5),
+    legend.position = "top",  
+    legend.direction = "horizontal",
+    legend.box = "vertical",
+    legend.title.position = "top"
+    )
+         
+
+graph <-
+  graph + 
+  geom_text_repel(aes(label = polarization_all$month_year),
+            box.padding = 0.5,
+            segment.size = 0.1,
+            nudge_y = -0.05)
+ 
+graph
+```
+
 ---
 
 ## Creative 3
