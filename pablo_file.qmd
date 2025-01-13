@@ -100,7 +100,8 @@ second_pp_sum <- second_pp |>
 
 Cataluña elections
 ```{r}
-new_parties <- ("JUNTS PER CATALUNYA-JUNTS")
+new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
+                 "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA")
 
 catalunya <- election_data_tidy |> 
   mutate(party_recoded = 
@@ -114,7 +115,7 @@ catalunya <- catalunya |>
 
 catalunya_votes <- catalunya |> 
   group_by(date, party_recoded) |> 
-  summarize(total_votes = sum(mean(votes_recoded)), .groups = "drop")
+  summarize(total_votes = sum((votes_recoded)), .groups = "drop")
 
 # Crear el gráfico de evolución de los votos por partido
 g <- ggplot(catalunya_votes, aes(x = date, y = total_votes, color = party_recoded, group = party_recoded)) +
