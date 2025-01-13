@@ -1,0 +1,732 @@
+---
+title: "GROUP TASK"
+author: "Pablo Aísa Serranos, Irene Bosque Gala, Diego Fernández Álvarez, Mafalda González González, Sophie Kersten, Irantzu Lamarca Flores, David Pereiro Pol, Gür Piren "
+format:
+ revealjs:
+    theme: [default, style.scss]
+    smaller: true
+    scrollable: true
+    embed-resources: true
+    slide-number: true
+    code-fold: true
+    code-overflow: wrap
+execute: 
+  echo: true
+output: revealjs::revealjs_presentation
+---
+
+
+## Data cleaning
+
+```{r}
+#| echo: false
+## Libraries 
+library(revealjs)
+library(tidyverse)
+library(readr)
+library(glue)
+library(ggplot2)
+```
+
+
+```{r}
+#| eval: false
+#| echo: false
+election_data <- read_csv(file = "./data/datos_elecciones_brutos.csv")
+cod_mun <- read_csv(file = "./data/cod_mun.csv")
+surveys <- read_csv(file = "./data/historical_surveys.csv")
+abbrev <- read_csv(file = "./data/siglas.csv")
+```
+
+```{r}
+#| eval: false
+#| code-fold: show
+
+important_parties <- c(
+  "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
+  "PARTIDO POPULAR",
+  "CIUDADANOS",
+  "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO",
+  "BLOQUE NACIONALISTA GALEGO",
+  "CONVERGÈNCIA I UNIÓ",
+  "UNIDAS PODEMOS - IU",
+  "ESQUERRA REPUBLICANA DE CATALUNYA",
+  "EH - BILDU",
+  "MÁS PAÍS",
+  "VOX"
+)
+
+election_data_tidy <- election_data |> 
+  pivot_longer(cols = -(1:15), names_to = "party", values_to = "votes") |> 
+  mutate(
+    party_recoded = case_when(
+      str_detect(party, "PARTIDO SOCIALISTA OBRERO ESPAÑOL|PARTIT DELS SOCIALISTES DE CATALUNYA|PARTIDO SOCIALISTA DE EUSKADI|PARTIDO DOS SOCIALISTAS DE GALICIA") ~ "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
+      str_detect(party, "PARTIDO DE LA CIUDADANIA|PARTIDO DE LA CIUDADANÍA") ~ "CIUDADANOS-PARTIDO DE LA CIUDADANIA",
+      str_detect(party, "EH - BILDU|ARALAR|ALTERNATIBA|EUSKO ALKARTASUNA") ~ "EUSKAL HERRIA BILDU",
+      str_detect(party, "UNIDAS PODEMOS|EN MAREA|PODEM|EZKER BATUA|IZQUIERDA UNIDA|ESQUERRA UNIDA|ESQUERDA UNIDA") ~ "PODEMOS",
+      str_detect(party, "CONVERGÈNCIA I UNIÓ|CONVERGENCIA I UNIO|DEMOCRÀCIA I LLIBERTAT|CONVERGÈNCIA i UNIÓ ") ~ "CONVERGENCIA I UNIO",
+      str_detect(party, "BLOQUE NACIONALISTA GALEGO|CANDIDATURA GALEGA") ~ "BLOQUE NACIONALISTA GALEGO",
+      str_detect(party, "PARTIDO POPULAR") ~ "PARTIDO POPULAR",
+      str_detect(party, "MÁS PAÍS") ~ "MÁS PAÍS",
+      str_detect(party, "ESQUERRA REPUBLICANA DE CATALUNYA|ESQUERRA REPUBLICANA/CATALUNYA") ~ "ESQUERRA REPUBLICANA DE CATALUNYA",
+      party %in% important_parties ~ party,
+      TRUE ~ "OTHER"
+    ),
+    date = glue("{anno}-{mes}-01") |> as_date()
+  ) |> 
+  unite("cod_mun", codigo_ccaa, codigo_provincia, codigo_municipio, sep = "-", remove = FALSE) |> 
+  left_join(
+    abbrev |> 
+      distinct(denominacion, .keep_all = TRUE) |> 
+      mutate(siglas = case_when(
+        siglas == "C's" ~ "CS",
+        siglas == "EH Bildu" ~ "EH BILDU",
+        siglas == "M PAÍS" ~ "MP",
+        TRUE ~ siglas
+      )), 
+    by = c("party_recoded" = "denominacion")
+  ) |> 
+  left_join(cod_mun, by = "cod_mun") |> 
+  select(-vuelta, -tipo_eleccion, -codigo_distrito_electoral) |> 
+  drop_na(votes) |> 
+  mutate(
+    siglas = if_else(is.na(siglas),"OTHER", siglas)
+  )
+
+surveys_tidy <- surveys |> 
+  pivot_longer(cols = -(1:10), names_to = "party", values_to = "estimation")  |>
+  filter(
+    year(date_elec) >= 2008,
+    exit_poll == FALSE,
+    size >= 750,
+    field_date_to - field_date_from >= 1
+  ) |>
+  select(-type_survey) |>
+  drop_na(size) 
+```
+
+```{r}
+#| eval: false
+#| echo: false
+
+save(election_data_tidy, file = "data/elections_tidy.rda")
+save(surveys_tidy, file = "data/surveys_tidy.rda")
+
+```
+
+```{r}
+#| echo: false
+
+load("data/elections_tidy.rda")
+load("data/surveys_tidy.rda")
+```
+
+--- 
+
+## Question 1
+> Which party was the winner in the municipalities with more than 100,000 habitants (census) in each of the elections?
+
+```{r}
+# Filter
+
+large_municipalities <- election_data_tidy |>
+  filter(censo > 100000)
+
+# Winning parties
+winners <- large_municipalities |> 
+  group_by(date, municipio) |> 
+  slice_max(votes, n = 1, with_ties = FALSE) |> 
+  select(date, party_recoded, municipio, censo)
+
+# Number of municipalities won
+winners_by_party <- winners |> 
+  group_by(date, party_recoded)|> 
+  summarize(num_municipalities = n(), .groups = "drop") |> 
+  arrange(date, desc(num_municipalities))
+
+
+```
+
+```{r, fig.height = 8, fig.width = 10}
+
+library(showtext)
+font_add_google("Roboto Condensed", "Roboto")
+# Modificar el dataframe para que "date" sea un factor con solo las fechas presentes en los datos
+winners$date <- factor(winners$date, levels = unique(winners$date))
+
+# Crear el heatmap con los cambios
+ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
+  geom_tile(color = "white") +
+  scale_fill_manual(
+    values = c(
+      c(
+      "PARTIDO POPULAR" = "#1db4e8",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
+      "CONVERGENCIA I UNIO" = "#1b348a")
+      ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "OTHER",
+      "PODEMOS" = "PODEMOS",
+      "VOX" = "VOX",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "CONVERGENCIA I UNIO" = "CiU"
+    )
+  ) +
+  labs(
+    title = "Winning party in municipalities with more than 100,000 habitants",
+    x = "Date of election",
+    y = "Municipality",
+    fill = "Parties"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 11, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines"),
+  ) 
+
+
+```
+
+--- 
+
+```{r, fig.height = 6, fig.width = 10}
+
+general_election_winners <- data.frame(
+  date = as.Date(c("2008-03-01", "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01")),
+  party_recoded = c(
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  # 2008
+    "PARTIDO POPULAR",                    # 2011
+    "PARTIDO POPULAR",                    # 2015
+    "PARTIDO POPULAR",                    # 2016
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  #Primera de 2019
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL")  #Segunda de 2019
+)
+
+# Crear la columna end_date (inicio de la siguiente legislatura)
+general_election_winners$end_date <- as.Date(c(
+  "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01", "2019-11-01"
+))
+
+# Gráfico con fondo de color para los partidos ganadores en las elecciones generales
+ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_recoded)) +
+  geom_rect(data = general_election_winners,
+            aes(xmin = date, xmax = end_date, ymin = -Inf, ymax = Inf, fill = party_recoded),
+            alpha = 0.1, inherit.aes = FALSE) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +  
+  scale_color_manual(
+    values = c(
+      "PARTIDO POPULAR" = "#1db4e8",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
+      "CONVERGENCIA I UNIO" = "#1b348a"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "VOX" = "Vox",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "CONVERGENCIA I UNIO" = "CiU"
+    ))  +
+  scale_fill_manual(
+    values = c(
+      "PARTIDO POPULAR" = "#1db4e8",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE")
+  ) +
+  geom_vline(data = general_election_winners, aes(xintercept = as.numeric(date)),
+             color = "gray50", linetype = "dashed", size = 0.4) +
+  labs(
+    title = "Evolution of winning party in municipalities with more than 100,000 habitants",
+    x = "Date of Election",
+    y = "Number of Municipalities",
+    color = "Winner in each municipality",
+    fill = "General Election Winner"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 11, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines"),
+  ) 
+
+
+
+
+
+```
+
+---
+
+## Question 2
+
+> Which party was the second when the first was the PSOE? And when the first was the PP?
+
+```{r}
+ranked_votes <- election_data_tidy |> 
+  group_by(date, municipio) |> 
+  arrange(desc(votes)) |> 
+  mutate(rank = row_number()) |> 
+  ungroup()
+
+# PSOE is first
+second_psoe <- ranked_votes |> 
+  group_by(date, municipio) |> 
+  filter(rank == 1 & party_recoded == "PARTIDO SOCIALISTA OBRERO ESPAÑOL") |> 
+  left_join(
+    ranked_votes |> 
+      filter(rank == 2) |> 
+      select(date, municipio, second = party_recoded, votes = votes),
+    by = c("date", "municipio")
+  ) |> 
+  ungroup()
+
+second_psoe_sum <- second_psoe |> 
+  group_by(date, second) |> 
+  summarize(
+    num_municipalities = n(),
+    .groups = "drop"
+  ) |> 
+  arrange(date, desc(num_municipalities))
+
+# PP is first
+second_pp <- ranked_votes |> 
+  group_by(date, municipio) |> 
+  filter(rank == 1 & party_recoded == "PARTIDO POPULAR") |> 
+  left_join(
+    ranked_votes |> 
+      filter(rank == 2) |> 
+      select(date, municipio, second = party_recoded, votes = votes),
+    by = c("date", "municipio")
+  ) |> 
+  ungroup()
+
+second_pp_sum <- second_pp |> 
+  group_by(date, second) |> 
+  summarize(
+    num_municipalities = n(),
+    .groups = "drop"
+  ) |> 
+  arrange(date, desc(num_municipalities))
+
+```
+
+```{r, fig.height = 6, fig.width = 10}
+second_combined <- bind_rows(
+  second_pp_sum %>% mutate(first = "PP"),
+  second_psoe_sum %>% mutate(first = "PSOE")
+)
+
+second_combined$date <- factor(second_combined$date, levels = unique(second_combined$date))
+
+# Gráfico de barras apiladas con facets
+ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
+  geom_bar(stat = "identity", position = "fill", color = "black") +
+  scale_fill_manual(
+    values = c(
+      "PARTIDO POPULAR" = "#1db4e8",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
+      "BLOQUE NACIONALISTA GALEGO" = "lightblue",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "orange",
+      "VOX" = "#83b431",
+      "CONVERGENCIA I UNIO" = "#1b348a",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "yellow"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "BLOQUE NACIONALISTA GALEGO" = "BNG",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "ERC"
+    )
+  ) +
+  labs(
+    title = "Second places when PSOE or PP were first",
+    x = "Election Date",
+    y = "Number of Municipalities",
+    fill = "Second Party"
+  ) +
+  facet_wrap(~ first, scales = "free_y", labeller = labeller(first = c(PP = "PP First", PSOE = "PSOE First"))) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 14, face = "bold", family = "Roboto"),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black", angle = 20),
+    axis.text.y = element_text(size = 11, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines")
+  ) 
+
+```
+
+---
+
+```{r, fig.height = 7, fig.width = 12}
+library(ggalluvial)
+
+# Recodificar los nombres de los partidos
+second_combined <- second_combined %>%
+  mutate(
+    first = recode(first,
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "BLOQUE NACIONALISTA GALEGO" = "BNG",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA" = "ERC"
+    ),
+    second = recode(second,
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "BLOQUE NACIONALISTA GALEGO" = "BNG",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA" = "ERC"
+    )) |> 
+  filter(!(second == "PNV" | second == "BNG" | second == "ERC"))
+  
+
+# Gráfico Alluvial actualizado
+ggplot(second_combined, aes(
+  axis1 = first, axis2 = second,
+  y = num_municipalities, fill = second
+)) +
+  geom_alluvium(aes(fill = second), width = 1/6) +
+  geom_stratum(aes(fill = after_stat(stratum)), width = 1/6, color = "black") +
+ geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3.5, color = "black", fontface = "bold") +
+  scale_fill_manual(
+    values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "Others" = "gray60",
+      "Podemos" = "#a444b4",
+      "PNV" = "darkgreen",
+      "BNG" = "lightblue",
+      "C's" = "orange",
+      "VOX" = "#83b431",
+      "CiU" = "#1b348a",
+      "ERC" = "yellow"
+    )
+  ) +
+  labs(
+    title = "Flow of municipalities won: First to second party",
+    x = "First to Second Party",
+    y = "Number of Municipalities",
+    fill = "Second Party"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 17, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    legend.title = element_text(size = 13, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 11, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines")
+  )
+```
+
+---
+
+## Question 3
+
+> Who benefits from low turnout?
+
+```{r}
+
+election_data_tidy <- election_data_tidy |> 
+  group_by(cod_mun, date, party_recoded) |> 
+  mutate(
+    total_votes = votos_blancos + votos_nulos + votos_candidaturas,
+    turnout = total_votes / censo,
+    votes_recoded = sum(votes, na.rm = TRUE),
+    vote_share_by_party = votes_recoded / total_votes
+  ) |> 
+  ungroup()
+
+# Let's try to visualise the model in a meaningful way
+
+
+ggplot(election_data_tidy, aes(x = turnout, y = vote_share_by_party, colour = siglas)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Party-Specific Trends: Vote Share vs Turnout",
+    x = "Turnout",
+    y = "Vote Share",
+    colour = "Party"
+  ) +
+  theme_minimal() +
+  scale_colour_manual(values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "ERC" = "#ffbf41",
+      "CIU" = "#1b348a",
+      "MP" = "#004938",
+      "CS" = "#eb6109",
+      "EAJ-PNV" = "darkgreen",
+      "BNG" = "lightblue",
+      "EH BILDU" = "#03cfb4"
+    )) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 17, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    legend.title = element_text(size = 13, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 11, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines")
+  )
+
+```
+
+---
+
+## Question 4
+
+> How to analyze the relationship between census and vote? 
+
+[@gómezvalenzuela2023]
+
+- Rural < 10000 recorded citizens in the census
+- Urban > 10000 recorded citizens in the census
+
+
+```{r}
+
+ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, colour = siglas)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Party-Specific Trends: Vote Share vs Census",
+    x = "Census",
+    y = "Vote Share",
+    colour = "Party"
+  ) +
+  theme_minimal() +
+  scale_colour_manual(values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "ERC" = "#ffbf41",
+      "CIU" = "#1b348a",
+      "MP" = "#004938",
+      "CS" = "#eb6109",
+      "EAJ-PNV" = "darkgreen",
+      "BNG" = "lightblue",
+      "EH BILDU" = "#03cfb4"
+    )) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 17, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 12, family = "Roboto", color = "black"),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    legend.title = element_text(size = 13, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 11, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines")
+  )
+```
+
+---
+
+> Is it true that certain parties win in rural areas?
+
+```{r}
+# For the second part - rural vs urban
+
+election_data_tidy <- election_data_tidy |> 
+  mutate(
+    area_type = ifelse(censo < 10000, "Rural", "Urban")
+  )
+```
+
+
+```{r}
+#| echo: false
+#| eval: false
+
+# Statistical information
+model_area_type <- lm(vote_share_by_party ~ area_type * party_recoded, data = election_data_tidy)
+summary(model_area_type)
+```
+
+
+```{r}
+rural_municipalities <- election_data_tidy |>
+  filter(area_type == "Rural")
+
+# Winning parties
+winners_rural <- rural_municipalities |> 
+  group_by(date, municipio) |> 
+  slice_max(votes_recoded, n = 1, with_ties = FALSE) |> 
+  select(date, party_recoded, municipio, censo)
+
+# Number of municipalities won
+winners_by_party_rural <- winners |> 
+  group_by(date, party_recoded)|> 
+  summarize(num_municipalities = n(), .groups = "drop") |> 
+  arrange(date, desc(num_municipalities))|> 
+  ungroup() 
+
+urban_municipalities <- election_data_tidy |>
+  filter(area_type == "Urban")
+
+# Winning parties
+winners_urban <- urban_municipalities |> 
+  group_by(date, municipio) |> 
+  slice_max(votes_recoded, n = 1, with_ties = FALSE) |> 
+  select(date, party_recoded, municipio, censo)
+
+# Number of municipalities won
+winners_by_party_urban <- winners_urban |> 
+  group_by(date, party_recoded)|> 
+  summarize(num_municipalities = n(), .groups = "drop") |> 
+  arrange(date, desc(num_municipalities))|> 
+  ungroup() 
+
+type_combined <- rbind(
+  winners_by_party_rural %>% mutate(type = "Rural"),
+  winners_by_party_urban %>% mutate(type = "Urban")
+)
+
+type_combined$date <- factor(type_combined$date, levels = unique(type_combined$date))
+
+ggplot(type_combined, aes(x = date, y = num_municipalities, fill = party_recoded)) +
+  geom_bar(stat = "identity", position = "fill", color = "black") +
+  scale_fill_manual(
+    values = c(
+      "PARTIDO POPULAR" = "#1db4e8",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
+      "BLOQUE NACIONALISTA GALEGO" = "lightblue",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "orange",
+      "VOX" = "#83b431",
+      "CONVERGENCIA I UNIO" = "#1b348a",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "yellow"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "BLOQUE NACIONALISTA GALEGO" = "BNG",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "ERC"
+    )
+  ) +
+  labs(
+    title = "Wins depending on the type of the area",
+    x = "Election Date",
+    y = "Number of Municipalities",
+    fill = "Parties"
+  ) +
+  facet_wrap(~ type, scales = "free_y") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 14, face = "bold", family = "Roboto"),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black", angle = 20),
+    axis.text.y = element_text(size = 11, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines")
+  ) 
+
+```
+
+---
+
+## Question 5
+
+> How to calibrate the error of the polls (remember that the polls are voting intentions at national level)?
+
+---
+
+## Question 6
+
+> Which polling houses got it right the most and which ones deviated the most from the results?
+
+---
+
+## Creative 1
+
+---
+
+## Creative 2
+
+---
+
+## Creative 3
+
+---
+
+## Creative 4
+
+
+
+
+
+
+
+
