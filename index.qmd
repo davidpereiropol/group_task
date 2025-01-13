@@ -221,7 +221,6 @@ general_election_winners$end_date <- as.Date(c(
   "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01", "2019-11-01"
 ))
 
-# Gráfico con fondo de color para los partidos ganadores en las elecciones generales
 ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_recoded)) +
   geom_rect(data = general_election_winners,
             aes(xmin = date, xmax = end_date, ymin = -Inf, ymax = Inf, fill = party_recoded),
@@ -276,10 +275,6 @@ ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_rec
     plot.margin = margin(15, 15, 15, 15),
     legend.key.size = unit(1, "lines"),
   ) 
-
-
-
-
 
 ```
 
@@ -401,8 +396,8 @@ ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
 ```{r, fig.height = 7, fig.width = 12}
 library(ggalluvial)
 
-# Recodificar los nombres de los partidos
-second_combined <- second_combined %>%
+# Names and siglas recode
+second_combined <- second_combined |> 
   mutate(
     first = recode(first,
       "PARTIDO POPULAR" = "PP",
@@ -428,8 +423,7 @@ second_combined <- second_combined %>%
     )) |> 
   filter(!(second == "PNV" | second == "BNG" | second == "ERC"))
   
-
-# Gráfico Alluvial actualizado
+# New graph
 ggplot(second_combined, aes(
   axis1 = first, axis2 = second,
   y = num_municipalities, fill = second
@@ -491,7 +485,6 @@ election_data_tidy <- election_data_tidy |>
   ungroup()
 
 # Let's try to visualise the model in a meaningful way
-
 
 ggplot(election_data_tidy, aes(x = turnout, y = vote_share_by_party, colour = siglas)) +
   geom_smooth(method = "lm", se = FALSE) +
