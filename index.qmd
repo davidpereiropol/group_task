@@ -129,8 +129,8 @@ load("data/surveys_tidy.rda")
 > Which party was the winner in the municipalities with more than 100,000 habitants (census) in each of the elections?
 
 ```{r}
-# Filter
 
+# Filter
 large_municipalities <- election_data_tidy |>
   filter(censo > 100000)
 
@@ -153,10 +153,10 @@ winners_by_party <- winners |>
 
 library(showtext)
 font_add_google("Roboto Condensed", "Roboto")
-# Modificar el dataframe para que "date" sea un factor con solo las fechas presentes en los datos
+
 winners$date <- factor(winners$date, levels = unique(winners$date))
 
-# Crear el heatmap con los cambios
+# Graph with the changes
 ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
   geom_tile(color = "white") +
   scale_fill_manual(
@@ -208,15 +208,15 @@ ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
 general_election_winners <- data.frame(
   date = as.Date(c("2008-03-01", "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01")),
   party_recoded = c(
-    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  # 2008
-    "PARTIDO POPULAR",                    # 2011
-    "PARTIDO POPULAR",                    # 2015
-    "PARTIDO POPULAR",                    # 2016
-    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  #Primera de 2019
-    "PARTIDO SOCIALISTA OBRERO ESPAÑOL")  #Segunda de 2019
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  
+    "PARTIDO POPULAR",                    
+    "PARTIDO POPULAR",                    
+    "PARTIDO POPULAR",                    
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL")
 )
 
-# Crear la columna end_date (inicio de la siguiente legislatura)
+# Creation of the column "end date"
 general_election_winners$end_date <- as.Date(c(
   "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01", "2019-11-01"
 ))
@@ -346,7 +346,7 @@ second_combined <- bind_rows(
 
 second_combined$date <- factor(second_combined$date, levels = unique(second_combined$date))
 
-# Gráfico de barras apiladas con facets
+# Stacked barplot
 ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
   geom_bar(stat = "identity", position = "fill", color = "black") +
   scale_fill_manual(
@@ -983,6 +983,134 @@ graph
 ---
 
 ## Creative 3
+
+> How has the vote in Catalonia changed over the years studied?
+
+```{r}
+
+# Important parties not included in the previous recodification
+new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
+                 "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA")
+
+catalunya <- election_data_tidy |>
+  mutate(
+    party_recoded = case_when(
+      party %in% new_parties ~ party,
+      TRUE ~ party_recoded
+    ),
+    siglas = case_when(
+      party_recoded == "JUNTS PER CATALUNYA-JUNTS" ~ "CIU",
+      party_recoded == "CONVERGÈNCIA DEMOCRÀTICA DE CATALUNYA" ~ "CIU", #included in CiU
+      TRUE ~ siglas
+    ),
+    province = case_when(
+      codigo_provincia == "08" ~ "Barcelona",
+      codigo_provincia == "17" ~ "Girona",
+      codigo_provincia == "25" ~ "Lleida",
+      codigo_provincia == "43" ~ "Tarragona",
+      TRUE ~ "Unknown")) |> 
+  filter(codigo_ccaa == "09") |> 
+  distinct(date, cod_mun, party_recoded, .keep_all = TRUE)
+
+catalunya_votes <- catalunya |>
+  filter(party_recoded != "OTHER") |> 
+  group_by(date, province, siglas) |> 
+  summarize(total_votes = sum(votes, na.rm = TRUE), .groups = "drop") |> 
+  group_by(date, province) |> 
+  mutate(vote_percentage_parties = (total_votes / sum(total_votes)) * 100) |> 
+  ungroup()
+
+gcat <- ggplot(catalunya_votes, aes(x = date, y = vote_percentage_parties, 
+                                 colour = siglas, group = siglas)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  facet_wrap(~ province, ncol = 2) +
+  scale_color_manual(
+    values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "ERC" = "#ffbf41",
+      "CIU" = "#1b348a",
+      "MP" = "#004938",
+      "CS" = "#eb6109"
+      )) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  labs(
+    title = "General elections in Catalonia over the years",
+    x = "Date of the election",
+    y = "Vote Share (%)",
+    color = "Party",
+    caption = "Source: Electoral Data"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", 
+                              hjust = 0.5, margin = margin(b = 20)),
+    strip.text = element_text(size = 12, face = "bold"),
+    axis.title = element_text(size = 10, face = "bold"),
+    axis.text.x = element_text(size = 8, color = "black", angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 8, color = "black"),
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8),
+    legend.box.background = element_rect(color = "black", linewidth = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines"))
+
+gcat
+```
+
+---
+
+> What happens if we group the parties into pro-independence and non-independence parties?
+
+```{r}
+independentist_parties <- c("ERC", "CIU") #just ERC and CIU
+
+dataset <- catalunya_votes |> 
+  mutate(independentist = ifelse(siglas %in% independentist_parties, 
+                                 "Independentist", "Non-Independentist"))
+
+# Percentage of vote per bloc and province
+votos_porcentaje_prov <- dataset |> 
+  group_by(date, independentist, province) |> 
+  summarise(total_votes = sum(total_votes), .groups = "drop") |> 
+  group_by(date, province) |> 
+  mutate(percentage = (total_votes / sum(total_votes)) * 100)
+
+# Graph comparing the blocs and the provinces
+gcat2 <- ggplot(votos_porcentaje_prov, aes(x = date, y = percentage, color = independentist, group = independentist)) +
+  geom_line(size = 1.2) +  
+  geom_point(size = 2) +   
+  scale_color_manual(
+    values = c("Independentist" = "darkblue", "Non-Independentist" = "darkred"),
+    labels = c("Independentist" = "Pro-Independence", "Non-Independentist" = "Non-Independence")
+  ) +
+  labs(
+    title = "Evolution of Pro-Independence vs Non-Independence Vote",
+    x = "Election Year",
+    y = "Percentage of Votes (%)",
+    color = "Political Bloc:",
+    caption = "Source: Electoral Data"
+  ) +
+  facet_wrap(~ province, ncol = 2) +  
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 10, face = "bold"),
+    axis.text.x = element_text(size = 8, color = "black", angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 8, color = "black"),
+    legend.title = element_text(size = 10, face = "bold"),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    legend.position = "top",
+    strip.text = element_text(size = 12, face = "bold"),  
+    plot.margin = margin(10, 10, 10, 10)
+  )
+
+gcat2
+```
+
 
 ---
 

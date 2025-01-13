@@ -104,10 +104,6 @@ Cataluña elections
 
 ```{r, fig.height = 7, fig.width = 12}
 
-library(dplyr)
-library(ggplot2)
-library(showtext)
-
 font_add_google("Roboto Condensed", "roboto")
 
 new_parties <- c("JUNTS PER CATALUNYA-JUNTS", 
