@@ -51,41 +51,74 @@ ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
   geom_tile(color = "white") +
   scale_fill_manual(
     values = c(
+      c(
       "PARTIDO POPULAR" = "#1db4e8",
       "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
       "OTHER" = "gray60",
       "PODEMOS" = "#a444b4",
       "VOX" = "#83b431",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
-      "CONVERGENCIA I UNIO" = "#1b348a"
+      "CONVERGENCIA I UNIO" = "#1b348a")
+      ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "OTHER",
+      "PODEMOS" = "PODEMOS",
+      "VOX" = "VOX",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "CONVERGENCIA I UNIO" = "CiU"
     )
   ) +
   labs(
-    title = "PARTY WINNERS BY MUNICIPALITY AND ELECTION",
+    title = "Winning party in municipalities with more than 100,000 habitants",
     x = "Date of election",
     y = "Municipality",
-    fill = "PARTY WINNER"
+    fill = "Parties"
   ) +
   theme_minimal() +
   theme(
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
-    axis.title.x = element_text(size = 10), 
-    axis.title.y = element_text(size = 10), 
-    axis.text.x = element_text(size = 12, hjust = 1, color = "black"), 
-    axis.text.y = element_text(size = 11, color = "black"), 
-    legend.position = "top", 
-    legend.title = element_text(size = 11), 
-    legend.text = element_text(size = 9), 
-    plot.margin = margin(10, 10, 10, 10) 
-  )
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines"),
+  ) 
+
 
 ```
 
 ```{r}
 
+general_election_winners <- data.frame(
+  date = as.Date(c("2008-03-01", "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01")),
+  party_recoded = c(
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",  # 2008
+    "PARTIDO POPULAR",                    # 2011
+    "PARTIDO POPULAR",                    # 2015
+    "PARTIDO POPULAR",                    # 2016
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
+    "PARTIDO SOCIALISTA OBRERO ESPAÑOL")
+)
+
+# Crear la columna end_date (inicio de la siguiente legislatura)
+general_election_winners$end_date <- as.Date(c(
+  "2011-11-01", "2015-12-01", "2016-06-01", "2019-04-01", "2019-11-01", "2019-11-01"
+))
+
+# Gráfico con fondo de color para los partidos ganadores en las elecciones generales
 ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_recoded)) +
+  # Fondo coloreado para el partido ganador de elecciones generales
+  geom_rect(data = general_election_winners,
+            aes(xmin = date, xmax = end_date, ymin = -Inf, ymax = Inf, fill = party_recoded),
+            alpha = 0.1, inherit.aes = FALSE) +
+  # Líneas de evolución de los municipios ganados
   geom_line(size = 1) +
-  geom_point(size = 3) +
+  geom_point(size = 3) +  # Puntos con borde negro
+  # Colores para los partidos
   scale_color_manual(
     values = c(
       "PARTIDO POPULAR" = "#1db4e8",
@@ -95,83 +128,53 @@ ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = party_rec
       "VOX" = "#83b431",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
       "CONVERGENCIA I UNIO" = "#1b348a"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "VOX" = "Vox",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "CONVERGENCIA I UNIO" = "CiU"
     )
   ) +
-  labs(
-    title = "EVOLUTION OF MUNICIPALITIES WON BY PARTIES",
-    x = "Fecha de Elección",
-    y = "Número de Municipios",
-    color = "PARTIES"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
-    axis.title.x = element_text(size = 12),
-    axis.title.y = element_text(size = 12),
-    axis.text.x = element_text(size = 10, hjust = 1),
-    axis.text.y = element_text(size = 10),
-    legend.title = element_text(size = 12),
-    legend.position = "top",
-    legend.text = element_text(size = 10),
-    plot.margin = margin(10, 10, 10, 10)
-  )
-
-
-```
-
-
-```{r}
-winners_by_party2 <- winners_by_party %>%
-  mutate(party_recoded = factor(
-    party_recoded,
-    levels = winners_by_party %>%
-      group_by(party_recoded) %>%
-      summarize(total_municipios = sum(num_municipalities)) %>%
-      arrange(total_municipios) %>%
-      pull(party_recoded)
-  ))
-
-winners_by_party2$date <- factor(winners_by_party2$date, levels = unique(winners_by_party2$date))
-
-# Crear el gráfico
-
-ggplot(winners_by_party2, aes(x = date, y = num_municipalities, fill = party_recoded)) +
-  geom_bar(stat = "identity") +
-  geom_text(
-    aes(label = num_municipalities), 
-    position = position_stack(vjust = 0.5), 
-    color = "black", size = 3.5
-  ) +
+  # Colores del fondo para el partido ganador
   scale_fill_manual(
     values = c(
       "PARTIDO POPULAR" = "#1db4e8",
-      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
-      "OTHER" = "gray60",
-      "PODEMOS" = "#a444b4",
-      "VOX" = "#83b431",
-      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
-      "CONVERGENCIA I UNIO" = "#1b348a"
-    )
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE")
   ) +
+  # Añadir líneas verticales en las fechas de elección
+  geom_vline(data = general_election_winners, aes(xintercept = as.numeric(date)),
+             color = "gray50", linetype = "dashed", size = 0.6) +
   labs(
-    title = "Número de municipios ganados por partidos en elecciones",
-    x = "Fecha de Elección",
-    y = "Número de Municipios Ganados",
-    fill = "Partido"
+    title = "Evolution of winning party in municipalities with more than 100,000 habitants",
+    x = "Date of Election",
+    y = "Number of Municipalities",
+    color = "Winner in each municipality",
+    fill = "General Election Winner"
   ) +
   theme_minimal() +
   theme(
-    text = element_text(family = "Arial"),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    axis.title.x = element_text(size = 10),
-    axis.title.y = element_text(size = 10),
-    axis.text.x = element_text(size = 10, hjust = 1.5, color = "black"),
-    axis.text.y = element_text(size = 10, color = "black"),
-    legend.position = "top",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10),
-    plot.margin = margin(10, 10, 10, 10)
-  )
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines"),
+  ) 
+
+
+
+
+
 ```
 
 
@@ -190,15 +193,14 @@ ranked_votes <- elections |>
 # PSOE is first
 second_psoe <- ranked_votes |> 
   group_by(date, municipio) |> 
-  filter(rank == 1 & siglas == "PSOE") |> 
+  filter(rank == 1 & party_recoded == "PARTIDO SOCIALISTA OBRERO ESPAÑOL") |> 
   left_join(
     ranked_votes |> 
       filter(rank == 2) |> 
-      select(date, municipio, second = siglas, votes = votes),
+      select(date, municipio, second = party_recoded, votes = votes),
     by = c("date", "municipio")
   ) |> 
   ungroup()
-
 
 second_psoe_sum <- second_psoe |> 
   group_by(date, second) |> 
@@ -207,21 +209,18 @@ second_psoe_sum <- second_psoe |>
     .groups = "drop"
   ) |> 
   arrange(date, desc(num_municipalities))
-View(second_psoe_sum)
 
 # PP is first
 second_pp <- ranked_votes |> 
   group_by(date, municipio) |> 
-  filter(rank == 1 & siglas == "PP") |> 
+  filter(rank == 1 & party_recoded == "PARTIDO POPULAR") |> 
   left_join(
     ranked_votes |> 
       filter(rank == 2) |> 
-      select(date, municipio, second = siglas, votes = votes),
+      select(date, municipio, second = party_recoded, votes = votes),
     by = c("date", "municipio")
   ) |> 
   ungroup()
-
-
 
 second_pp_sum <- second_pp |> 
   group_by(date, second) |> 
@@ -231,8 +230,9 @@ second_pp_sum <- second_pp |>
   ) |> 
   arrange(date, desc(num_municipalities))
 
-head(second_pp_sum)
+head(second_psoe_sum)
 ```
+
 
 ```{r}
 second_combined <- bind_rows(
@@ -247,13 +247,27 @@ ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
   geom_bar(stat = "identity", position = "stack", color = "black") +
   scale_fill_manual(
     values = c(
-      "PP" = "#1db4e8",
-      "PSOE" = "#c30505",
-      "NA" = "gray60",
+      "PARTIDO POPULAR" = "#1db4e8",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
+      "OTHER" = "gray60",
       "PODEMOS" = "#a444b4",
-      "EAJ-PNV" = "darkgreen",
-      "BNG" = "lightblue",
-      "C's" = "orange"
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
+      "BLOQUE NACIONALISTA GALEGO" = "lightblue",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "orange",
+      "VOX" = "#83b431",
+      "CONVERGENCIA I UNIO" = "#1b348a",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "yellow"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "BLOQUE NACIONALISTA GALEGO" = "BNG",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "ERC"
     )
   ) +
   labs(
@@ -265,24 +279,20 @@ ggplot(second_combined, aes(x = date, y = num_municipalities, fill = second)) +
   facet_wrap(~ first, scales = "free_y", labeller = labeller(first = c(PP = "PP First", PSOE = "PSOE First"))) +
   theme_minimal() +
   theme(
-    text = element_text(family = "Arial"),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    axis.title.x = element_text(size = 14),
-    axis.title.y = element_text(size = 14),
-    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-    axis.text.y = element_text(size = 12),
-    legend.position = "top",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10),
-    strip.text = element_text(size = 14, face = "bold")
-  )
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines")
+  ) 
 
 ```
 
 ```{r}
-second_combined <- second_combined |> 
-  drop_na()
-
+library(ggalluvial)
 # Crear el gráfico Sankey
 ggplot(second_combined, aes(
   axis1 = first, axis2 = second,
@@ -293,16 +303,27 @@ ggplot(second_combined, aes(
   geom_label(stat = "stratum", aes(label = after_stat(stratum)), size = 4) +
   scale_fill_manual(
     values = c(
-      "PP" = "#1db4e8",
-      "PSOE" = "#c30505",
-      "NA" = "gray60",
+      "PARTIDO POPULAR" = "#1db4e8",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "#c30505",
+      "OTHER" = "gray60",
       "PODEMOS" = "#a444b4",
-      "EAJ-PNV" = "darkgreen",
-      "BNG" = "#5B92E5",
-      "C's" = "#EFB62A",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
+      "BLOQUE NACIONALISTA GALEGO" = "lightblue",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "orange",
       "VOX" = "#83b431",
-      "OTHER" = "lightgray",
-      "CIU" = "#1b348a"
+      "CONVERGENCIA I UNIO" = "#1b348a",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "yellow"
+    ),
+    labels = c(
+      "PARTIDO POPULAR" = "PP",
+      "PARTIDO SOCIALISTA OBRERO ESPAÑOL" = "PSOE",
+      "OTHER" = "Others",
+      "PODEMOS" = "Podemos",
+      "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
+      "BLOQUE NACIONALISTA GALEGO" = "BNG",
+      "CIUDADANOS-PARTIDO DE LA CIUDADANIA" = "C's",
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "ERC"
     )
   ) +
   labs(
@@ -313,17 +334,14 @@ ggplot(second_combined, aes(
   ) +
   theme_minimal() +
   theme(
-    text = element_text(family = "Arial"),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 10),
-    axis.text.x = element_blank(),
-    axis.text.y = element_blank(),
-    legend.position = "top",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10),
-    plot.margin = margin(10, 10, 10, 10)
-  )
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
+    axis.text.x = element_text(size = 10, family = "Roboto", color = "black"),
+    axis.text.y = element_text(size = 10, family = "Roboto", color = "black"),
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1, "lines"))
 
 
 
