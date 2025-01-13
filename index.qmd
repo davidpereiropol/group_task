@@ -892,6 +892,8 @@ elections_top_parties <-
 
 ```
 
+---
+
 ```{r}
 
 polarization_all <-
