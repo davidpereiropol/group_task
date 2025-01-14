@@ -28,6 +28,8 @@ library(glue)
 library(ggplot2)
 library(ggrepel)
 library(lubridate)
+library(viridis)
+library(grid)
 ```
 
 
@@ -1184,9 +1186,200 @@ gcat2
 
 ---
 
-## Creative 4
+## Creative 4: Chaos 
+
+Insert meme here of burning elmo 
 
 
+```{r}
+# selected municipios 
+race <- election_data_tidy |> 
+  filter(municipio %in% c("Alpedrete", "Moaña", 
+                          "Cornellà de Llobregat",
+                          "Manacor", "Madrid", "Bilbao", 
+                          "Vitoria-Gasteiz", "Gijón"))
+
+# winners by year and municipio
+winners <- race |> 
+  group_by(municipio, date) |> 
+  arrange(desc(votes)) |> 
+  slice(1) |> # most votes = winners 
+  ungroup()
+
+
+# record winning party from previous year
+stability <- winners |> 
+  arrange(municipio, date) |>
+  group_by(municipio) |>
+  mutate(
+    previous_party = lag(party_recoded), # winning party previous election
+    party_change = ifelse(party_recoded == previous_party, 0, 1) # 1 if the party changed, 0 otherwise
+  ) |>
+  ungroup()
+
+
+# sum stability/chaos for each municipality
+chaos_summary <- stability |>
+  group_by(municipio) |>
+  summarise(
+    total_changes = sum(party_change, na.rm = TRUE), # 
+    total_comparisons = n() - 1, # total comparisons (changes between elections = elections -1)
+    chaos_rate = total_changes / total_comparisons    # Proportion of elections with a change
+  )
+
+# visuals  
+library(viridis)
+chaos_withlabels <-
+  ggplot(chaos_summary, 
+         aes(x = reorder(municipio, chaos_rate), 
+             y = chaos_rate, 
+             fill = chaos_rate)) +
+  geom_col(width = 0.7, alpha = 0.9) +
+  #xlim(0, 0.8) + 
+  scale_fill_viridis(option = "plasma", direction = -1, name = "Chaos Rate") +
+  geom_text(aes(label = municipio), 
+            hjust = 1.1, color = "white", size = 5, fontface = "bold") +
+  geom_text(aes(label = scales::percent(chaos_rate, accuracy = 1)), 
+            hjust = -0.1, size = 4, fontface = "bold") +
+  labs(
+    title = "Chaos Rate of Municipalities in Elections",
+    subtitle = "Proportion of elections with a change in the winning party",
+    x = "Municipality",
+    y = "Chaos Rate (%)"
+  ) +
+  coord_flip() + 
+  scale_y_continuous(
+    limits = c(0, 0.7),
+    breaks = seq(0.2, 1, by = 0.2),
+    labels = c("1/5", "2/5", "3/5", "4/5", "5/5") 
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.y = element_blank(),  
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black"),
+    plot.title = element_text(face = "bold", size = 16, family = "Roboto"),
+    plot.subtitle = element_text(size = 12, family = "Roboto"), 
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5), 
+    panel.grid.major.y = element_blank(), 
+    legend.key.size = unit(1, "lines")
+  )
+
+
+
+```
+
+--- 
+
+```{r}
+#| echo: false
+chaos_withlabels 
+```
+
+---
+
+```{r}
+#| echo: false
+
+disastergirl <- rasterGrob(png::readPNG("disastergirl.png"),
+                         x = 1, y = 1,  
+                         hjust = 1, vjust = 1, 
+                         width = unit(0.24, "npc")) 
+
+moana <- rasterGrob(png::readPNG("moana.png"),
+                         x = 0.92, y = 0.97,  
+                         hjust = 1, vjust = 1, 
+                         width = unit(0.08, "npc")) 
+
+vitoria_gasteiz <- rasterGrob(png::readPNG("vitoria-gasteiz.png"),
+                         x = 0.85, y = 0.92,  
+                         hjust = 1, vjust = 1, 
+                         width = unit(0.08, "npc")) 
+
+# plotting canvas
+grid.newpage()  +
+  grid.draw(ggplotGrob(chaos_withlabels))  +
+  grid.draw(disastergirl) + 
+  grid.draw(moana) + 
+  grid.draw(vitoria_gasteiz)
+  
+```
+
+--- 
+
+> But... who did they vote? 
+
+```{r} 
+#| echo: false 
+# colour by chaos_rate legend
+legend_colours <- 
+  chaos_summary |>
+  distinct(chaos_rate) |> 
+  arrange(chaos_rate) |>  
+  mutate(colour = viridis_pal(option = "plasma", direction = -1)(n()))
+
+# expand stability df 
+x <- stability
+stability <- x
+stability <- stability |> 
+  left_join(chaos_summary, by = "municipio") |> 
+  left_join(legend_colours, by = "chaos_rate") |> 
+  group_by(municipio) |>  
+  arrange(chaos_rate)
+
+# colour palette
+municipality_colours <- 
+  stability |>  
+  distinct(municipio, chaos_rate, colour) |> 
+  select(-chaos_rate) |> 
+  deframe() 
+
+ggplot(stability, 
+        aes(x = factor(date, levels = unique(date)), 
+            y = reorder(municipio, chaos_rate, .desc = TRUE), 
+            fill = siglas)) +
+  geom_tile(colour = "white", size = 0.7) + 
+  scale_fill_manual(
+    values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "ERC" = "#ffbf41",
+      "CIU" = "#1b348a",
+      "MP" = "#004938",
+      "CS" = "#eb6109",
+      "EAJ-PNV" = "darkgreen",
+      "BNG" = "lightblue",
+      "EH BILDU" = "#03cfb4"
+    ),
+    name = "Winning Party"
+  ) +
+  labs(
+    title = "Winning Party by Municipality and Election Year",
+    subtitle = "Party with the Most Votes in Each Election",
+    x = "Election Year",
+    y = "Municipality"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, family = "Roboto"),
+    plot.subtitle = element_text(size = 12, family = "Roboto"),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black", angle = 20, hjust = 1),
+    axis.text.y = element_text(size = 11, family = "Roboto", 
+                               color = municipality_colours), 
+    axis.title = element_blank(), 
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    legend.position = "bottom", 
+    legend.key.size = unit(1, "lines"),
+    panel.grid = element_blank() 
+  ) 
+
+```
 
 
 
