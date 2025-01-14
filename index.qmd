@@ -669,11 +669,6 @@ Question 4
 
 > How to analyze the relationship between census and vote?
 
-[@gómezvalenzuela2023]
-
--   Rural \< 10000 recorded citizens in the census
--   Urban \> 10000 recorded citizens in the census
-
 ```{r}
 
 cen_vote <- ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, colour = siglas)) +
@@ -714,7 +709,7 @@ cen_vote <- ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, c
   )
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Question 4
@@ -726,7 +721,6 @@ Question 4
 cen_vote
 ```
 
-
 ------------------------------------------------------------------------
 
 ::: footer
@@ -734,6 +728,11 @@ Question 4
 :::
 
 > Is it true that certain parties win in rural areas?
+
+[@gómezvalenzuela2023]
+
+-   Rural \< 10000 recorded citizens in the census
+-   Urban \> 10000 recorded citizens in the census
 
 ```{r}
 # For the second part - rural vs urban
@@ -831,7 +830,7 @@ rural_urban <- ggplot(type_combined, aes(x = date, y = num_municipalities, fill 
 
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Question 4
@@ -843,7 +842,6 @@ Question 4
 rural_urban
 
 ```
-
 
 ------------------------------------------------------------------------
 
@@ -893,7 +891,7 @@ poll_calibration <- poll_calibration |>
 
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Question 5
@@ -904,7 +902,6 @@ Question 5
 #| 
 poll_calibration |> select(pollster, error)
 ```
-
 
 ------------------------------------------------------------------------
 
@@ -953,7 +950,7 @@ top_error_pollster <- ggplot(top_pollsters, aes(x = reorder(pollster, mean_abs_e
 
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Question 6
@@ -964,7 +961,6 @@ Question 6
 
 top_error_pollster
 ```
-
 
 ------------------------------------------------------------------------
 
@@ -984,7 +980,7 @@ low_error_pollsters <- ggplot(low_pollsters, aes(x = reorder(pollster, mean_abs_
   theme_minimal()
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Question 6
@@ -995,7 +991,6 @@ Question 6
 
 low_error_pollsters
 ```
-
 
 ------------------------------------------------------------------------
 
@@ -1021,7 +1016,7 @@ polling_error_by_party <- poll_calibration |>
 
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Creative 1
@@ -1033,7 +1028,6 @@ Creative 1
 polling_error_by_party
 
 ```
-
 
 ------------------------------------------------------------------------
 
@@ -1276,7 +1270,7 @@ gcat <- ggplot(catalunya_votes, aes(x = date, y = vote_percentage_parties,
 
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Creative 3
@@ -1288,7 +1282,6 @@ Creative 3
 gcat
 
 ```
-
 
 ------------------------------------------------------------------------
 
@@ -1343,7 +1336,7 @@ gcat2 <- ggplot(votos_porcentaje_prov, aes(x = date, y = percentage, color = ind
   )
 ```
 
----
+------------------------------------------------------------------------
 
 ::: footer
 Creative 3
@@ -1354,7 +1347,6 @@ Creative 3
 #| 
 gcat2
 ```
-
 
 ------------------------------------------------------------------------
 
@@ -1494,7 +1486,6 @@ grid.draw(vitoria_gasteiz)
 Creative 4: Chaos
 :::
 
-
 > But... who did they vote?
 
 ```{r}
@@ -1568,15 +1559,10 @@ ggplot(stability,
 
 ```
 
----
+------------------------------------------------------------------------
 
 ## Bibliography
 
 ::: footer
 Bibliography
 :::
-
-
-
-
-
