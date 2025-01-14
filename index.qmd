@@ -126,6 +126,7 @@ load("data/surveys_tidy.rda")
 --- 
 
 ## Question 1
+
 > Which party was the winner in the municipalities with more than 100,000 habitants (census) in each of the elections?
 
 ```{r}
@@ -201,9 +202,11 @@ gmun <- ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
 
 ---
 
-```{r}
+```{r, fig.height = 8, fig.width = 10}
 #| echo: false
+
 gmun
+
 ```
 
 ---
@@ -282,13 +285,8 @@ gwin <- ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = p
     legend.key.size = unit(1, "lines"),
   )
 
-```
-
----
-
-```{r}
-#| echo: false
 gwin
+
 ```
 
 ---
@@ -347,7 +345,6 @@ second_pp_sum <- second_pp |>
 ```
 
 ```{r, fig.height = 6, fig.width = 10}
-
 second_combined <- bind_rows(
   second_pp_sum |>  
     mutate(first = "PP"),
@@ -402,9 +399,16 @@ gsec <- ggplot(second_combined, aes(x = date, y = num_municipalities, fill = sec
     legend.box.background = element_rect(color = "black", size = 0.5),
     plot.margin = margin(15, 15, 15, 15),
     legend.key.size = unit(1, "lines")
-  ) 
+  )
+```
+
+---
+
+```{r, fig.height = 6, fig.width = 10}
+#| echo: false
 
 gsec
+
 ```
 
 ---
@@ -846,6 +850,7 @@ polling_error_by_party <- poll_calibration |>
 polling_error_by_party 
 
 ```
+
 ---
 
 ## Creative 2
