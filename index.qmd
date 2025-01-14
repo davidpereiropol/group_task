@@ -493,6 +493,10 @@ gsec2
 
 ```{r}
 
+library(wordcloud)
+library(RColorBrewer)
+
+
 election_data_tidy <- election_data_tidy |> 
   group_by(cod_mun, date, party_recoded) |> 
   mutate(
@@ -505,43 +509,88 @@ election_data_tidy <- election_data_tidy |>
 
 # Let's try to visualise the model in a meaningful way
 
+# regression model with interaction between turnout and party
+model_all <- lm(vote_share_by_party ~ turnout * party_recoded, data = election_data_tidy)
 
-ggplot(election_data_tidy, aes(x = turnout, y = vote_share_by_party, colour = siglas)) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(
-    title = "Party-Specific Trends: Vote Share vs Turnout",
-    x = "Turnout",
-    y = "Vote Share",
-    colour = "Party"
-  ) +
-  theme_minimal() +
-  scale_colour_manual(values = c(
-      "PP" = "#1db4e8",
-      "PSOE" = "#c30505",
-      "OTHER" = "gray60",
-      "PODEMOS" = "#a444b4",
-      "VOX" = "#83b431",
-      "ERC" = "#ffbf41",
-      "CIU" = "#1b348a",
-      "MP" = "#004938",
-      "CS" = "#eb6109",
-      "EAJ-PNV" = "darkgreen",
-      "BNG" = "lightblue",
-      "EH BILDU" = "#03cfb4"
-    )) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 17, face = "bold", hjust = 0.5, family = "Roboto", margin = margin(b = 20)),
-    axis.text.x = element_text(size = 12, family = "Roboto", color = "black"),
-    axis.text.y = element_text(size = 12, family = "Roboto", color = "black"),
-    axis.title.x = element_text(size = 13),
-    axis.title.y = element_text(size = 13),
-    legend.title = element_text(size = 13, family = "Roboto", face = "bold"),
-    legend.text = element_text(size = 11, family = "Roboto"),
-    legend.box.background = element_rect(color = "black", size = 0.5),
-    plot.margin = margin(15, 15, 15, 15),
-    legend.key.size = unit(1, "lines")
+model_summary <- summary(model_all)
+
+
+# From the coefficents table, I extract the ones that starts with "turnout:party_recoded"
+
+model_coefficients <- model_summary$coefficients
+
+party_coeffs <- model_coefficients[grepl("turnout:party_recoded", rownames(model_coefficients)), , drop = FALSE]
+
+# This part is to delete potential occurrences where there could be duplicates. Parties and abbs are matched.
+
+party_mapping <- election_data_tidy |> 
+  select(party_recoded, siglas) |> 
+  distinct()
+
+# For erasing the silly part from the row names, ensuring there are no hidden spacing
+
+party_names <- gsub("turnout:party_recoded", "", rownames(party_coeffs))  
+party_names <- trimws(party_names)  # Clean names
+
+# Matching party abbreviations and coefficients in a data frame
+party_coeff_df <- data.frame(
+  party = party_names,
+  coefficient = party_coeffs[, "Estimate"]
+)
+
+# # Finally merging them all for getting party abbreviations and coefficients!
+
+party_coeff_df <- party_coeff_df |> 
+  left_join(party_mapping, by = c("party" = "party_recoded")) |> 
+  select(siglas, coefficient) %>%
+  rename(party_abbrev = siglas)
+
+# For inserting size, colour and legend information to wordcloud
+party_coeff_df <- party_coeff_df |> 
+  mutate(
+    size = abs(coefficient),  # abs values will decide size of each party's size
+    category = ifelse(coefficient < 0, "Negative", "Positive")
   )
+
+# trying to create a logical colouring......
+
+color_pal <- c(
+  "Negative" = "#980043",
+  "Positive" = "#9e9ac8")
+
+# I then assign colours to each party based on their category
+party_coeff_df <- party_coeff_df |> 
+  mutate(color = color_pal[category])
+
+set.seed(123)
+
+# Generate the word cloud
+wordcloud(words = party_coeff_df$party_abbrev,  # Texts will represent parties
+          freq = party_coeff_df$size,           # Basing frequencies on abs values of coeffs
+          min.freq = 0, 
+          max.words = 12,  # I will restrict anyways. Not sure if it's necessary
+          random.order = FALSE,
+          rot.per = 0.5,
+          scale = c(2.8, 0.60),
+          colors = party_coeff_df$color)
+
+title(main = "Party Coefficients for Vote Share ~ Turnout", 
+      sub = "**Parties are sized on the basis of the absolute values of their respective coefficients**", 
+      cex.main = 1.2, # title size
+      cex.sub = 1, # subtitle size
+      col.main = "darkblue",
+      col.sub = "#636363", 
+      family = "serif")  
+
+legend(x = 0.95, y = 0.65,  # positioning the legend
+       legend = names(color_pal),  # to translate legend keys from color_pal
+       fill = color_pal,           # filling the legend keys with color_pal
+       cex = 0.8,                  # legend text size
+       text.font = 2, 
+       text.col = "#636363",
+       bty = "n",                  #  box around the legend
+       ncol = 1) 
+
 
 ```
 
