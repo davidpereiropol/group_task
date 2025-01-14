@@ -1084,7 +1084,7 @@ ggplot(data = polling_error_by_party, aes(x = reorder(party, mean_abs_error), y 
 Creative 2
 :::
 
-> By finding the most successful two parties for each year, calculate a polarisation index. Then, compare polarisation of vote of no confidence elections with the rest
+> How the multiparty system changed throughout the elections according to the polarization index?
 
 ```{r}
 
