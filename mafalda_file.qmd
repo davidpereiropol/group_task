@@ -206,11 +206,15 @@ x <- election_data_tidy
 # election_data_tidy <- x
 ```
 
-Chaos vs stability
+### Chaos vs stability code
 
 ```{r}
+# seelcted municipios 
 race <- election_data_tidy |> 
-  filter(municipio %in% c("Alpedrete", "Moaña", "Cornellà de Llobregat", "Manacor", "Madrid", "Bilbao", "Vitoria-Gasteiz", "Gijón"))
+  filter(municipio %in% c("Alpedrete", "Moaña", 
+                          "Cornellà de Llobregat",
+                          "Manacor", "Madrid", "Bilbao", 
+                          "Vitoria-Gasteiz", "Gijón"))
 
 # winners by year and municipio
 winners <- race |> 
@@ -218,6 +222,7 @@ winners <- race |>
   arrange(desc(votes)) |> 
   slice(1) |> # most votes = winners 
   ungroup()
+
 
 # record winning party from previous year
 stability <- winners |> 
@@ -229,6 +234,7 @@ stability <- winners |>
   ) |>
   ungroup()
 
+
 # sum stability/chaos for each municipality
 chaos_summary <- stability |>
   group_by(municipio) |>
@@ -237,8 +243,13 @@ chaos_summary <- stability |>
     total_comparisons = n() - 1, # total comparisons (changes between elections = elections -1)
     chaos_rate = total_changes / total_comparisons    # Proportion of elections with a change
   )
+```
 
+### Visuals 
+```{r}
 # visuals 
+
+# basic 
 ggplot(chaos_summary, aes(x = municipio, y = chaos_rate, fill = municipio)) +
   geom_col() +
   labs(
@@ -249,10 +260,10 @@ ggplot(chaos_summary, aes(x = municipio, y = chaos_rate, fill = municipio)) +
   theme_minimal()
 
 
+
+# good 
 library(viridis)
-
-
-chaos_withlabels <- 
+chaos_withlabels <-
   ggplot(chaos_summary, 
          aes(x = reorder(municipio, chaos_rate), 
              y = chaos_rate, 
@@ -272,64 +283,35 @@ chaos_withlabels <-
   ) +
   coord_flip() + 
   scale_y_continuous(
-    limits = c(0, 0.65),
+    limits = c(0, 0.7),
     breaks = seq(0.2, 1, by = 0.2),
     labels = c("1/5", "2/5", "3/5", "4/5", "5/5") 
   ) +
   theme_minimal(base_size = 14) +
   theme(
     axis.text.y = element_blank(),  
-    plot.title = element_text(face = "bold", size = 16),
-    plot.subtitle = element_text(size = 12), 
-    panel.grid.major.y = element_blank()
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black"),
+    plot.title = element_text(face = "bold", size = 16, family = "Roboto"),
+    plot.subtitle = element_text(size = 12, family = "Roboto"), 
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5), 
+    panel.grid.major.y = element_blank(), 
+    legend.key.size = unit(1, "lines")
   )
+
+
+chaos_withlabels
 
 
 
 ```
 
-IGNORE THIS 
-```{r}
-#| eval: false
-# Example dataset (replace with your actual dataset)
-# This assumes you have columns: municipality, year, and winning_party
-election_data <- data.frame(
-  municipality = c("A", "A", "A", "B", "B", "B", "C", "C", "C"),
-  year = c(2000, 2004, 2008, 2000, 2004, 2008, 2000, 2004, 2008),
-  winning_party = c("Party X", "Party X", "Party Y", "Party Z", "Party Z", "Party Z", "Party Y", "Party X", "Party X")
-)
 
-# Heatmap
-library(ggplot2)
-
-ggplot(election_data, aes(x = year, y = municipality, fill = winning_party)) +
-  geom_tile(color = "white", size = 0.5) + # Tiles with borders
-  scale_fill_manual(values = c("Party X" = "blue", "Party Y" = "green", "Party Z" = "red")) + # Party colours
-  labs(
-    title = "Winning Party by Municipality and Election Year",
-    x = "Election Year",
-    y = "Municipality",
-    fill = "Winning Party"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1), # Rotate x-axis labels for better readability
-    panel.grid = element_blank() # Remove gridlines for a clean look
-  )
-
-```
-
-
-
-
-
-
-
-
-MEMES 
+### MEMES 
 ```{r}
 library(grid)
-image_grob <- rasterGrob(png::readPNG("thisisfine.png"),
+thisisfine <- rasterGrob(png::readPNG("thisisfine.png"),
                          x = 1, y = 0.86,  
                          hjust = 1, vjust = 1, 
                          width = unit(0.24, "npc")) 
@@ -338,53 +320,68 @@ image_grob <- rasterGrob(png::readPNG("thisisfine.png"),
 thisisfine_plot <- 
   grid.newpage()  +
   grid.draw(ggplotGrob(chaos_withlabels))  +
-  grid.draw(image_grob)
+  grid.draw(thisisfine)
 ```
 
 ```{r}
-image_grob <- rasterGrob(png::readPNG("disastergirl.png"),
+disastergirl <- rasterGrob(png::readPNG("disastergirl.png"),
                          x = 1, y = 1,  
                          hjust = 1, vjust = 1, 
                          width = unit(0.24, "npc")) 
 
+moana <- rasterGrob(png::readPNG("moana.png"),
+                         x = 0.92, y = 0.97,  
+                         hjust = 1, vjust = 1, 
+                         width = unit(0.08, "npc")) 
+
+vitoria_gasteiz <- rasterGrob(png::readPNG("vitoria-gasteiz.png"),
+                         x = 0.85, y = 0.92,  
+                         hjust = 1, vjust = 1, 
+                         width = unit(0.08, "npc")) 
+
 # new plotting canvas
 disastergirl_plot <- grid.newpage()  +
   grid.draw(ggplotGrob(chaos_withlabels))  +
-  grid.draw(image_grob)
+  grid.draw(disastergirl) + 
+  grid.draw(moana) + 
+  grid.draw(vitoria_gasteiz)
+  
 ```
 
 
-Heatmap 
+### Heatmap 
 
 ```{r}
-# Filter for specific municipalities
-race2 <- election_data_tidy |> 
-  filter(municipio %in% c("Alpedrete", "Moaña", "Cornellà de Llobregat", 
-                          "Manacor", "Madrid", "Bilbao", "Vitoria-Gasteiz", "Gijón"))
+# colour by chaos_rate legend
+legend_colours <- 
+  chaos_summary |>
+  distinct(chaos_rate) |> 
+  arrange(chaos_rate) |>  
+  mutate(colour = viridis_pal(option = "plasma", direction = -1)(n()))
 
-# Find winners for each municipality and date
-winners2 <- race2 |> 
-  group_by(municipio, date) |> 
-  arrange(desc(votes)) |> 
-  slice(1) |>  # Select the party with the most votes
-  ungroup()
+# expand stability df 
+x <- stability
+stability <- x
+stability <- stability |> 
+  left_join(chaos_summary, by = "municipio") |> 
+  left_join(legend_colours, by = "chaos_rate") |> 
+  group_by(municipio) |>  
+  arrange(chaos_rate)
 
-# Add a winning_party column
-stability2 <- winners2 |> 
-  arrange(municipio, date) |> 
-  group_by(municipio) |> 
-  mutate(
-    previous_party = lag(party_recoded), # Previous election's winning party
-    party_change = ifelse(party_recoded == previous_party, 0, 1), # 1 = party change
-    winning_party = siglas       # Assign winning party
-  ) |> 
-  ungroup()
+# colour palette
+municipality_colours <- 
+  stability |>  
+  distinct(municipio, chaos_rate, colour) |> 
+  select(-chaos_rate) |> 
+  deframe() 
 
-
-# Heatmap
-ggplot(stability2, aes(x = date, y = municipio, fill = winning_party)) +
-  geom_tile(color = "white", size = 0.5) + # Tiles with borders
-  scale_fill_manual(values = c(
+ggplot(stability, 
+        aes(x = factor(date, levels = unique(date)), 
+            y = reorder(municipio, chaos_rate, .desc = TRUE), 
+            fill = siglas)) +
+  geom_tile(colour = "white", size = 0.7) + 
+  scale_fill_manual(
+    values = c(
       "PP" = "#1db4e8",
       "PSOE" = "#c30505",
       "OTHER" = "gray60",
@@ -397,17 +394,30 @@ ggplot(stability2, aes(x = date, y = municipio, fill = winning_party)) +
       "EAJ-PNV" = "darkgreen",
       "BNG" = "lightblue",
       "EH BILDU" = "#03cfb4"
-    )) + # Adjust colours based on your parties
+    ),
+    name = "Winning Party"
+  ) +
   labs(
     title = "Winning Party by Municipality and Election Year",
-    subtitle = "Heatmap of Party Stability",
+    subtitle = "Party with the Most Votes in Each Election",
     x = "Election Year",
-    y = "Municipality",
-    fill = "Winning Party"
+    y = "Municipality"
   ) +
   theme_minimal(base_size = 14) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1), # Rotate x-axis labels
-    panel.grid = element_blank()                      # Clean up gridlines
-  )
+    plot.title = element_text(face = "bold", size = 16, family = "Roboto"),
+    plot.subtitle = element_text(size = 12, family = "Roboto"),
+    axis.text.x = element_text(size = 11, family = "Roboto", color = "black", angle = 20, hjust = 1),
+    axis.text.y = element_text(size = 11, family = "Roboto", 
+                               color = municipality_colours), 
+    axis.title = element_blank(), 
+    legend.title = element_text(size = 11, family = "Roboto", face = "bold"),
+    legend.text = element_text(size = 10, family = "Roboto"),
+    legend.box.background = element_rect(color = "black", size = 0.5),
+    legend.position = "bottom", 
+    legend.key.size = unit(1, "lines"),
+    panel.grid = element_blank() 
+  ) 
+
+
 ```
