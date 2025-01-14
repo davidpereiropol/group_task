@@ -899,8 +899,16 @@ Question 5
 
 ```{r}
 #| echo: false
-#| 
-poll_calibration |> select(pollster, error)
+
+
+ggplot(poll_calibration, aes(x = error)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+  geom_density(color = "darkblue", size = 1) +  
+  theme_minimal() +
+  labs(
+    title = "Survey Error Distribution ",
+    x = "Error (Estimate - Actual Vote) (%)",
+    y ="Density")
 ```
 
 ------------------------------------------------------------------------
@@ -1025,7 +1033,46 @@ Creative 1
 ```{r}
 #| echo: false
 
-polling_error_by_party
+ggplot(data = polling_error_by_party, aes(x = reorder(party, mean_abs_error), y = mean_abs_error, fill = party)) +
+  geom_col(color = "black") + 
+  geom_errorbar(aes(ymin = mean_abs_error - sd_abs_error, ymax = mean_abs_error + sd_abs_error), 
+                width = 0.2, color = "darkblue") +
+  theme_minimal() +  
+  labs(
+    title = "Mean Absolute Error by Political Party",
+    x = "Political Party",
+    y = "Mean Absolute Error",
+    fill = "Party"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1) 
+  ) +
+  scale_fill_manual(values = c(
+      "PP" = "#1db4e8",
+      "PSOE" = "#c30505",
+      "OTHER" = "gray60",
+      "PODEMOS" = "#a444b4",
+      "VOX" = "#83b431",
+      "ERC" = "#ffbf41",
+      "CIU" = "#1b348a",
+      "MP" = "#004938",
+      "CS" = "#eb6109",
+      "EAJ-PNV" = "darkgreen",
+      "BNG" = "lightblue",
+      "EH BILDU" = "#03cfb4"
+  )) +
+   theme(
+    plot.title = element_text(size = 16, face = "bold", 
+                              hjust = 0.5, margin = margin(b = 20)),
+    axis.title = element_text(size = 10, face = "bold"),
+    axis.text.x = element_text(size = 8, color = "black", angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 8, color = "black"),
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8),
+    legend.box.background = element_rect(color = "black", linewidth = 0.5),
+    plot.margin = margin(15, 15, 15, 15),
+    legend.key.size = unit(1,"lines"))
+
 
 ```
 
