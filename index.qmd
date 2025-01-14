@@ -1,6 +1,5 @@
 ---
-title: "DATA PROGRAMMING:
-GROUP TASK"
+title: "DATA PROGRAMMING: <br>GROUP TASK"
 author: "Pablo Aísa Serranos, Irene Bosque Gala, Diego Fernández Álvarez, Mafalda González González, Sophie Kersten, Irantzu Lamarca Flores, David Pereiro Pol, Gür Piren "
 format:
  revealjs:
@@ -9,6 +8,9 @@ format:
     scrollable: true
     embed-resources: true
     slide-number: true
+    title-slide-attributes:
+      data-background-image: background.jpg
+      data-background-size: cover    
     code-overflow: wrap
 execute: 
   echo: true
@@ -1473,18 +1475,22 @@ vitoria_gasteiz <- rasterGrob(png::readPNG("vitoria-gasteiz.png"),
                          hjust = 1, vjust = 1, 
                          width = unit(0.07, "npc")) 
 
-# plotting canvas
-chaos_meme <- grid.newpage()  +
-  grid.draw(ggplotGrob(chaos_withlabels))  +
-  grid.draw(disastergirl) + 
-  grid.draw(moana) + 
-  grid.draw(vitoria_gasteiz)
+grid.newpage()
 
-chaos_meme
-  
+grid.draw(ggplotGrob(chaos_withlabels))
+
+grid.draw(disastergirl)
+grid.draw(moana)
+grid.draw(vitoria_gasteiz)
+
 ```
 
 ------------------------------------------------------------------------
+
+::: footer
+Creative 4: Chaos
+:::
+
 
 > But... who did they vote?
 
@@ -1558,3 +1564,16 @@ ggplot(stability,
   ) 
 
 ```
+
+---
+
+## Bibliography
+
+::: footer
+Bibliography
+:::
+
+
+
+
+
