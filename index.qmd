@@ -923,7 +923,6 @@ Question 6
 error_analysis <- poll_calibration |> 
   group_by(pollster) |> 
   summarize(
-    mean_error = mean(abs(error), na.rm = TRUE),
     sd_error = sd(error, na.rm = TRUE)
   )
 
