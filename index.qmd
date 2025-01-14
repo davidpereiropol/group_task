@@ -176,7 +176,8 @@ gmun <- ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
       "PODEMOS" = "#a444b4",
       "VOX" = "#83b431",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
-      "CONVERGENCIA I UNIO" = "#1b348a")
+      "CONVERGENCIA I UNIO" = "#1b348a",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "#ffbf41")
       ),
     labels = c(
       "PARTIDO POPULAR" = "PP",
@@ -185,7 +186,8 @@ gmun <- ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
       "PODEMOS" = "PODEMOS",
       "VOX" = "VOX",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
-      "CONVERGENCIA I UNIO" = "CiU"
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "ERC"
     )
   ) +
   labs(
@@ -260,7 +262,8 @@ gwin <- ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = p
       "PODEMOS" = "#a444b4",
       "VOX" = "#83b431",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "darkgreen",
-      "CONVERGENCIA I UNIO" = "#1b348a"
+      "CONVERGENCIA I UNIO" = "#1b348a",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "#ffbf41"
     ),
     labels = c(
       "PARTIDO POPULAR" = "PP",
@@ -269,7 +272,8 @@ gwin <- ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = p
       "PODEMOS" = "Podemos",
       "VOX" = "Vox",
       "EUZKO ALDERDI JELTZALEA-PARTIDO NACIONALISTA VASCO" = "PNV",
-      "CONVERGENCIA I UNIO" = "CiU"
+      "CONVERGENCIA I UNIO" = "CiU",
+      "ESQUERRA REPUBLICANA DE CATALUNYA"= "ERC"
     ))  +
   scale_fill_manual(
     values = c(
