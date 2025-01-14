@@ -1,5 +1,6 @@
 ---
-title: "GROUP TASK"
+title: "DATA PROGRAMMING:
+GROUP TASK"
 author: "Pablo Aísa Serranos, Irene Bosque Gala, Diego Fernández Álvarez, Mafalda González González, Sophie Kersten, Irantzu Lamarca Flores, David Pereiro Pol, Gür Piren "
 format:
  revealjs:
@@ -8,15 +9,18 @@ format:
     scrollable: true
     embed-resources: true
     slide-number: true
-    code-fold: true
     code-overflow: wrap
 execute: 
   echo: true
 output: revealjs::revealjs_presentation
+bibliography: references.bib
 ---
 
-
 ## Data cleaning
+
+::: footer
+Data cleaning
+:::
 
 ```{r}
 #| echo: false
@@ -30,8 +34,11 @@ library(ggrepel)
 library(lubridate)
 library(viridis)
 library(grid)
+library(showtext)
+library(ggalluvial)
+library(wordcloud)
+library(RColorBrewer)
 ```
-
 
 ```{r}
 #| eval: false
@@ -44,7 +51,6 @@ abbrev <- read_csv(file = "./data/siglas.csv")
 
 ```{r}
 #| eval: false
-#| code-fold: show
 
 important_parties <- c(
   "PARTIDO SOCIALISTA OBRERO ESPAÑOL",
@@ -125,13 +131,17 @@ load("data/elections_tidy.rda")
 load("data/surveys_tidy.rda")
 ```
 
---- 
+------------------------------------------------------------------------
 
 ## Question 1
 
+::: footer
+Question 1
+:::
+
 > Which party was the winner in the municipalities with more than 100,000 habitants (census) in each of the elections?
 
-```{r}
+```{r, fig.height = 8, fig.width = 10}
 
 # Filter
 large_municipalities <- election_data_tidy |>
@@ -149,12 +159,6 @@ winners_by_party <- winners |>
   summarize(num_municipalities = n(), .groups = "drop") |> 
   arrange(date, desc(num_municipalities))
 
-
-```
-
-```{r, fig.height = 8, fig.width = 10}
-
-library(showtext)
 font_add_google("Roboto Condensed", "Roboto")
 # Date as factor
 winners$date <- factor(winners$date, levels = unique(winners$date))
@@ -202,7 +206,11 @@ gmun <- ggplot(winners, aes(x = date, y = municipio, fill = party_recoded)) +
 
 ```
 
----
+------------------------------------------------------------------------
+
+::: footer
+Question 1
+:::
 
 ```{r, fig.height = 8, fig.width = 10}
 #| echo: false
@@ -211,7 +219,11 @@ gmun
 
 ```
 
----
+------------------------------------------------------------------------
+
+::: footer
+Question 1
+:::
 
 ```{r, fig.height = 6, fig.width = 10}
 
@@ -287,13 +299,27 @@ gwin <- ggplot(winners_by_party, aes(x = date, y = num_municipalities, color = p
     legend.key.size = unit(1, "lines"),
   )
 
-gwin
-
 ```
 
----
+------------------------------------------------------------------------
+
+::: footer
+Question 1
+:::
+
+```{r, fig.height = 6, fig.width = 10}
+#| echo: false
+
+gwin
+```
+
+------------------------------------------------------------------------
 
 ## Question 2
+
+::: footer
+Question 2
+:::
 
 > Which party was the second when the first was the PSOE? And when the first was the PP?
 
@@ -344,9 +370,6 @@ second_pp_sum <- second_pp |>
   ) |> 
   arrange(date, desc(num_municipalities))
 
-```
-
-```{r, fig.height = 6, fig.width = 10}
 second_combined <- bind_rows(
   second_pp_sum |>  
     mutate(first = "PP"),
@@ -404,7 +427,11 @@ gsec <- ggplot(second_combined, aes(x = date, y = num_municipalities, fill = sec
   )
 ```
 
----
+------------------------------------------------------------------------
+
+::: footer
+Question 2
+:::
 
 ```{r, fig.height = 6, fig.width = 10}
 #| echo: false
@@ -413,10 +440,13 @@ gsec
 
 ```
 
----
+------------------------------------------------------------------------
+
+::: footer
+Question 2
+:::
 
 ```{r, fig.height = 7, fig.width = 12}
-library(ggalluvial)
 
 # Names and siglas for the parties to avoid NA
 second_combined <- second_combined |> 
@@ -486,22 +516,32 @@ gsec2 <- ggplot(second_combined, aes(
     plot.margin = margin(15, 15, 15, 15),
     legend.key.size = unit(1, "lines")
   )
+```
+
+------------------------------------------------------------------------
+
+::: footer
+Question 2
+:::
+
+```{r, fig.height = 7, fig.width = 12}
+#| echo: false
 
 gsec2
 
 ```
 
----
+------------------------------------------------------------------------
 
 ## Question 3
+
+::: footer
+Question 3
+:::
 
 > Who benefits from low turnout?
 
 ```{r}
-
-library(wordcloud)
-library(RColorBrewer)
-
 
 election_data_tidy <- election_data_tidy |> 
   group_by(cod_mun, date, party_recoded) |> 
@@ -568,6 +608,18 @@ color_pal <- c(
 party_coeff_df <- party_coeff_df |> 
   mutate(color = color_pal[category])
 
+
+```
+
+------------------------------------------------------------------------
+
+::: footer
+Question 3
+:::
+
+```{r}
+#| echo: false
+
 set.seed(123)
 
 # Generate the word cloud
@@ -579,6 +631,7 @@ wordcloud(words = party_coeff_df$party_abbrev,  # Texts will represent parties
           rot.per = 0.5,
           scale = c(2.8, 0.60),
           colors = party_coeff_df$color)
+
 
 title(main = "Party Coefficients for Vote Share ~ Turnout", 
       sub = "**Parties are sized on the basis of the absolute values of their respective coefficients**", 
@@ -600,21 +653,24 @@ legend(x = 0.95, y = 0.65,  # positioning the legend
 
 ```
 
----
+------------------------------------------------------------------------
 
 ## Question 4
 
-> How to analyze the relationship between census and vote? 
+::: footer
+Question 4
+:::
+
+> How to analyze the relationship between census and vote?
 
 [@gómezvalenzuela2023]
 
-- Rural < 10000 recorded citizens in the census
-- Urban > 10000 recorded citizens in the census
-
+-   Rural \< 10000 recorded citizens in the census
+-   Urban \> 10000 recorded citizens in the census
 
 ```{r}
 
-ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, colour = siglas)) +
+cen_vote <- ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, colour = siglas)) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(
     title = "Party-Specific Trends: Vote Share vs Census",
@@ -654,6 +710,23 @@ ggplot(election_data_tidy, aes(x = censo, y = vote_share_by_party, colour = sigl
 
 ---
 
+::: footer
+Question 4
+:::
+
+```{r}
+#| echo: false
+
+cen_vote
+```
+
+
+------------------------------------------------------------------------
+
+::: footer
+Question 4
+:::
+
 > Is it true that certain parties win in rural areas?
 
 ```{r}
@@ -663,20 +736,7 @@ election_data_tidy <- election_data_tidy |>
   mutate(
     area_type = ifelse(censo < 10000, "Rural", "Urban")
   )
-```
 
-
-```{r}
-#| echo: false
-#| eval: false
-
-# Statistical information
-model_area_type <- lm(vote_share_by_party ~ area_type * party_recoded, data = election_data_tidy)
-summary(model_area_type)
-```
-
-
-```{r}
 rural_municipalities <- election_data_tidy |>
   filter(area_type == "Rural")
 
@@ -716,7 +776,7 @@ type_combined <- rbind(
 
 type_combined$date <- factor(type_combined$date, levels = unique(type_combined$date))
 
-ggplot(type_combined, aes(x = date, y = num_municipalities, fill = party_recoded)) +
+rural_urban <- ggplot(type_combined, aes(x = date, y = num_municipalities, fill = party_recoded)) +
   geom_bar(stat = "identity", position = "fill", color = "black") +
   scale_fill_manual(
     values = c(
@@ -767,7 +827,25 @@ ggplot(type_combined, aes(x = date, y = num_municipalities, fill = party_recoded
 
 ---
 
+::: footer
+Question 4
+:::
+
+```{r}
+#| echo: false
+
+rural_urban
+
+```
+
+
+------------------------------------------------------------------------
+
 ## Question 5
+
+::: footer
+Question 5
+:::
 
 > How to calibrate the error of the polls (remember that the polls are voting intentions at national level)?
 
@@ -796,10 +874,6 @@ elections_with_shares <- elections_aggregated1 |>
   left_join(elections_aggregated2, by = "date") |> 
   mutate(vote_share = (total_votes_all / participation_total) * 100)
 
-```
-
-```{r}
-
 poll_calibration <- surveys_tidy |> 
   mutate(year_month_elec = floor_date(date_elec, "month")) |> # I will extract year and month (lubridate package)
   left_join(
@@ -811,13 +885,28 @@ poll_calibration <- surveys_tidy |>
 poll_calibration <- poll_calibration |> 
   mutate(error = estimation - vote_share)
 
-poll_calibration |> select(error)
-
 ```
 
 ---
 
+::: footer
+Question 5
+:::
+
+```{r}
+#| echo: false
+#| 
+poll_calibration |> select(pollster, error)
+```
+
+
+------------------------------------------------------------------------
+
 ## Question 6
+
+::: footer
+Question 6
+:::
 
 > Which polling houses got it right the most and which ones deviated the most from the results?
 
@@ -831,10 +920,6 @@ error_analysis <- poll_calibration |>
     mean_error = mean(abs(error), na.rm = TRUE),
     sd_error = sd(error, na.rm = TRUE)
   )
-
-```
-
-```{r}
 
 poll_calibration <- poll_calibration |> 
   mutate(abs_error = abs(error))  
@@ -851,7 +936,7 @@ pollster_accuracy <- poll_calibration |>
 top_pollsters <- pollster_accuracy %>%
   slice_max(mean_abs_error, n = 10)  
 
-ggplot(top_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
+top_error_pollster <- ggplot(top_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
   geom_bar(stat = "identity", fill = "purple", alpha = 0.7) +
   labs(
     title = "Top 10 Pollster with Highest Mean Absolute Error",
@@ -865,12 +950,25 @@ ggplot(top_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_er
 
 ---
 
+::: footer
+Question 6
+:::
+
+```{r}
+#| echo: false
+
+top_error_pollster
+```
+
+
+------------------------------------------------------------------------
+
 ```{r}
 # Bar plot to represent the MAE for the lowest 10 pollsters
 low_pollsters <- pollster_accuracy %>%
   slice_min(mean_abs_error, n = 10)  
 
-ggplot(low_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
+low_error_pollsters <- ggplot(low_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_error)) +
   geom_bar(stat = "identity", fill = "purple", alpha = 0.7) +
   labs(
     title = "Top 10 Pollster with Lowest Mean Absolute Error",
@@ -883,7 +981,24 @@ ggplot(low_pollsters, aes(x = reorder(pollster, mean_abs_error), y = mean_abs_er
 
 ---
 
+::: footer
+Question 6
+:::
+
+```{r}
+#| echo: false
+
+low_error_pollsters
+```
+
+
+------------------------------------------------------------------------
+
 ## Creative 1
+
+::: footer
+Creative 1
+:::
 
 > How does polling error vary by party?
 
@@ -896,15 +1011,32 @@ polling_error_by_party <- poll_calibration |>
     sd_abs_error = sd(abs_error, na.rm = TRUE)
   ) |> 
   arrange(mean_abs_error) |> 
-  head(10)
+  drop_na(sd_abs_error)
 
-polling_error_by_party 
 
 ```
 
 ---
 
+::: footer
+Creative 1
+:::
+
+```{r}
+#| echo: false
+
+polling_error_by_party
+
+```
+
+
+------------------------------------------------------------------------
+
 ## Creative 2
+
+::: footer
+Creative 2
+:::
 
 > By finding the most successful two parties for each year, calculate a polarisation index. Then, compare polarisation of vote of no confidence elections with the rest
 
@@ -961,9 +1093,14 @@ elections_top_parties <-
 
 ```
 
----
+------------------------------------------------------------------------
+
+::: footer
+Creative 2
+:::
 
 ```{r}
+#| echo: false
 
 polarization_all <-
   polarization_calc(election_data_tidy, 'all')
@@ -986,7 +1123,7 @@ graph_info <- data.frame(
     "Nothing")  
 )
 
-graph <- polarization_all |> 
+graph_polar <- polarization_all |> 
   ggplot() +
   aes(x = date, y = polarization_index) +
   geom_point(size = 2, shape = 1) +
@@ -1019,18 +1156,16 @@ graph <- polarization_all |>
     panel.grid = element_blank()
   )
 
-  
   # Changing the colors of legends and background filling while getting rid of 'nothing' key manually
   
-  graph <- 
-    graph +
-    scale_fill_manual(values = c(
-    "Better Multiparty System" = "#31a354",
-    "Worse Multiparty System" = "#de2d26")) 
+graph_polar <- 
+  graph_polar +
+  scale_fill_manual(values = c(
+  "Better Multiparty System" = "#31a354",
+  "Worse Multiparty System" = "#de2d26")) 
       
-
-graph <-
-  graph +
+graph_polar <-
+  graph_polar +
   theme(
     legend.justification = "center",
     legend.title = element_text(hjust = 0.5),
@@ -1041,19 +1176,24 @@ graph <-
     )
          
 
-graph <-
-  graph + 
+graph_polar <-
+  graph_polar + 
   geom_text_repel(aes(label = polarization_all$month_year),
             box.padding = 0.5,
             segment.size = 0.1,
             nudge_y = -0.05)
- 
-graph
+
+graph_polar
+
 ```
 
----
+------------------------------------------------------------------------
 
 ## Creative 3
+
+::: footer
+Creative 3
+:::
 
 > How has the vote in Catalonia changed over the years studied?
 
@@ -1129,11 +1269,27 @@ gcat <- ggplot(catalunya_votes, aes(x = date, y = vote_percentage_parties,
     plot.margin = margin(15, 15, 15, 15),
     legend.key.size = unit(1, "lines"))
 
+```
+
+---
+
+::: footer
+Creative 3
+:::
+
+```{r}
+#| echo: false
+
 gcat
 
 ```
 
----
+
+------------------------------------------------------------------------
+
+::: footer
+Creative 3
+:::
 
 > What happens if we group the parties into pro-independence and non-independence parties?
 
@@ -1180,16 +1336,30 @@ gcat2 <- ggplot(votos_porcentaje_prov, aes(x = date, y = percentage, color = ind
     strip.text = element_text(size = 12, face = "bold"),  
     plot.margin = margin(10, 10, 10, 10)
   )
-
-gcat2
 ```
 
 ---
 
-## Creative 4: Chaos 
+::: footer
+Creative 3
+:::
 
-Insert meme here of burning elmo 
+```{r}
+#| echo: false
+#| 
+gcat2
+```
 
+
+------------------------------------------------------------------------
+
+## Creative 4: Chaos
+
+::: footer
+Creative 4: Chaos
+:::
+
+![](https://c.tenor.com/ShzdJcrguswAAAAd/tenor.gif)
 
 ```{r}
 # selected municipios 
@@ -1228,7 +1398,7 @@ chaos_summary <- stability |>
   )
 
 # visuals  
-library(viridis)
+
 chaos_withlabels <-
   ggplot(chaos_summary, 
          aes(x = reorder(municipio, chaos_rate), 
@@ -1266,18 +1436,24 @@ chaos_withlabels <-
     legend.key.size = unit(1, "lines")
   )
 
-
-
 ```
 
---- 
+------------------------------------------------------------------------
+
+::: footer
+Creative 4: Chaos
+:::
 
 ```{r}
 #| echo: false
 chaos_withlabels 
 ```
 
----
+------------------------------------------------------------------------
+
+::: footer
+Creative 4: Chaos
+:::
 
 ```{r}
 #| echo: false
@@ -1285,32 +1461,34 @@ chaos_withlabels
 disastergirl <- rasterGrob(png::readPNG("disastergirl.png"),
                          x = 1, y = 1,  
                          hjust = 1, vjust = 1, 
-                         width = unit(0.24, "npc")) 
+                         width = unit(0.20, "npc")) 
 
 moana <- rasterGrob(png::readPNG("moana.png"),
                          x = 0.92, y = 0.97,  
                          hjust = 1, vjust = 1, 
-                         width = unit(0.08, "npc")) 
+                         width = unit(0.07, "npc")) 
 
 vitoria_gasteiz <- rasterGrob(png::readPNG("vitoria-gasteiz.png"),
                          x = 0.85, y = 0.92,  
                          hjust = 1, vjust = 1, 
-                         width = unit(0.08, "npc")) 
+                         width = unit(0.07, "npc")) 
 
 # plotting canvas
-grid.newpage()  +
+chaos_meme <- grid.newpage()  +
   grid.draw(ggplotGrob(chaos_withlabels))  +
   grid.draw(disastergirl) + 
   grid.draw(moana) + 
   grid.draw(vitoria_gasteiz)
+
+chaos_meme
   
 ```
 
---- 
+------------------------------------------------------------------------
 
-> But... who did they vote? 
+> But... who did they vote?
 
-```{r} 
+```{r}
 #| echo: false 
 # colour by chaos_rate legend
 legend_colours <- 
@@ -1380,9 +1558,3 @@ ggplot(stability,
   ) 
 
 ```
-
-
-
-
-
-
